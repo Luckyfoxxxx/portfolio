@@ -1,0 +1,31 @@
+name: PR Review (Advisory)
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  review:
+    name: Claude Agent Review
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Claude Code Review
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            Review this pull request for:
+            1. Correctness of financial calculations — check for off-by-one errors, rounding issues, currency handling
+            2. Security issues — auth bypass, injection, sensitive data exposure
+            3. TypeScript type safety — unsafe casts, missing null checks
+            4. Test coverage — are new code paths covered?
+            5. Performance — unnecessary DB queries, missing indexes
+
+            This is a personal investment tracker. Flag anything that could cause incorrect P&L calculations.
+            Post a concise review comment. This is advisory only — do not block merge.
