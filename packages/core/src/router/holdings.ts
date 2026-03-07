@@ -5,9 +5,8 @@ import { holdings, transactions } from "@portfolio/db";
 import {
   calculateCostBasisFIFO,
   calculatePnL,
-  calculateRealizedPnL,
 } from "../calculations/index";
-import { addHoldingSchema, addTransactionSchema, symbolSchema } from "../schemas/index";
+import { addHoldingSchema, addTransactionSchema, updateHoldingSchema } from "../schemas/index";
 import type { TransactionRecord } from "../types/index";
 import { protectedProcedure, router } from "./trpc";
 
@@ -35,6 +34,13 @@ export const holdingsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const result = await ctx.db.insert(holdings).values(input).returning();
       return result[0];
+    }),
+
+  update: protectedProcedure
+    .input(updateHoldingSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...fields } = input;
+      await ctx.db.update(holdings).set({ ...fields, updatedAt: new Date() }).where(eq(holdings.id, id));
     }),
 
   delete: protectedProcedure

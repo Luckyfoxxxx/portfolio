@@ -110,9 +110,9 @@ export function PriceChart({ data, currency = "USD" }: PriceChartProps) {
               borderRadius: "8px",
               fontSize: "12px",
             }}
-            formatter={(value: number) => [formatPrice(value, currency), "Price"]}
-            labelFormatter={(label: string) =>
-              new Date(label).toLocaleDateString("en-US", {
+            formatter={(value) => [formatPrice(Number(value), currency), "Price"]}
+            labelFormatter={(label) =>
+              new Date(String(label)).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "short",
                 day: "numeric",

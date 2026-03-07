@@ -1,4 +1,4 @@
-import yahooFinance from "yahoo-finance2";
+import YahooFinance from "yahoo-finance2";
 import type {
   HistoricalBar,
   NewsArticle,
@@ -6,11 +6,13 @@ import type {
   PriceService,
 } from "../types";
 
+const yf = new YahooFinance();
+
 export class YahooFinanceAdapter implements PriceService {
   private readonly source = "yahoo-finance";
 
   async getQuote(symbol: string): Promise<PriceQuote> {
-    const result = await yahooFinance.quote(symbol);
+    const result = await yf.quote(symbol);
 
     if (!result.regularMarketPrice) {
       throw new Error(`No price data for symbol: ${symbol}`);
@@ -52,7 +54,7 @@ export class YahooFinanceAdapter implements PriceService {
     to: Date,
     interval: "1d" | "1wk" | "1mo" = "1d"
   ): Promise<HistoricalBar[]> {
-    const result = await yahooFinance.historical(symbol, {
+    const result = await yf.historical(symbol, {
       period1: from,
       period2: to,
       interval,
@@ -70,7 +72,7 @@ export class YahooFinanceAdapter implements PriceService {
   }
 
   async getNews(symbol: string, limit = 10): Promise<NewsArticle[]> {
-    const result = await yahooFinance.search(symbol, {
+    const result = await yf.search(symbol, {
       newsCount: limit,
       quotesCount: 0,
     });
@@ -80,7 +82,7 @@ export class YahooFinanceAdapter implements PriceService {
       headline: item.title,
       url: item.link,
       source: item.publisher,
-      publishedAt: new Date(Number(item.providerPublishTime ?? 0) * 1000),
+      publishedAt: item.providerPublishTime,
       ...(item.relatedTickers !== undefined ? { relatedSymbols: item.relatedTickers } : {}),
     }));
   }

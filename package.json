@@ -9,19 +9,26 @@
     "test": "pnpm -r test",
     "test:coverage": "pnpm -r test:coverage",
     "db:migrate": "pnpm --filter @portfolio/db migrate",
-    "db:seed": "pnpm --filter @portfolio/db seed"
+    "db:seed": "pnpm --filter @portfolio/db seed",
+    "db:seed-dev": "pnpm --filter @portfolio/db seed-dev",
+    "dev:testdb": "DATABASE_URL=data/test.db pnpm --filter @portfolio/web dev"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.0.0",
-    "@typescript-eslint/parser": "^8.0.0",
-    "eslint": "^9.0.0",
-    "typescript": "^5.5.0"
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "eslint": "^10.0.3",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=20",
     "pnpm": ">=9"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["better-sqlite3", "esbuild", "msw", "@node-rs/argon2"]
+    "onlyBuiltDependencies": [
+      "better-sqlite3",
+      "esbuild",
+      "msw",
+      "@node-rs/argon2"
+    ]
   }
 }

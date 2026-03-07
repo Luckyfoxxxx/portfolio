@@ -12,7 +12,6 @@ export function calculateCostBasisFIFO(
   );
 
   const lots: CostBasisLot[] = [];
-  let realizedPnL = 0;
 
   for (const tx of sorted) {
     if (tx.type === "buy") {
@@ -28,11 +27,9 @@ export function calculateCostBasisFIFO(
         const lot = lots[0];
         if (!lot) break;
         if (lot.quantity <= remainingSellQty) {
-          realizedPnL += lot.quantity * (tx.price - lot.costPerShare);
           remainingSellQty -= lot.quantity;
           lots.shift();
         } else {
-          realizedPnL += remainingSellQty * (tx.price - lot.costPerShare);
           lot.quantity -= remainingSellQty;
           remainingSellQty = 0;
         }

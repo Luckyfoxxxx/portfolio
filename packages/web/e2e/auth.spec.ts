@@ -1,9 +1,10 @@
+import type { Page } from "@playwright/test";
 import { test, expect } from "@playwright/test";
 
 const TEST_USER = "testuser";
 const TEST_PASS = "testpassword123";
 
-async function login(page: import("@playwright/test").Page) {
+async function login(page: Page) {
   await page.goto("/login");
   await page.fill('input[name="username"]', TEST_USER);
   await page.fill('input[name="password"]', TEST_PASS);
