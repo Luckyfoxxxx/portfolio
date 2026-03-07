@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { getSession } from "../../../lib/auth/session.js";
-import { db } from "../../../lib/db/index.js";
-import { HoldingsList } from "../../../components/holdings/holdings-list.js";
-import { PortfolioSummary } from "../../../components/holdings/portfolio-summary.js";
+import { getSession } from "../../../lib/auth/session";
+import { db } from "../../../lib/db/index";
+import { HoldingsList } from "../../../components/holdings/holdings-list";
+import { PortfolioSummary } from "../../../components/holdings/portfolio-summary";
 import { holdings, priceSnapshots, transactions } from "@portfolio/db";
 import { calculatePortfolioPnL } from "@portfolio/core/calculations";
 import { desc, eq, inArray } from "drizzle-orm";

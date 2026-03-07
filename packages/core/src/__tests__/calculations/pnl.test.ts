@@ -3,8 +3,8 @@ import {
   calculatePnL,
   calculatePortfolioPnL,
   calculateRealizedPnL,
-} from "../../calculations/pnl.js";
-import type { HoldingSnapshot, TransactionRecord } from "../../types/index.js";
+} from "../../calculations/pnl";
+import type { HoldingSnapshot, TransactionRecord } from "../../types/index";
 
 const makeSnapshot = (
   symbol: string,

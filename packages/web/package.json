@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@node-rs/argon2": "^2.0.0",
+    "@portfolio/api-adapters": "workspace:*",
     "@portfolio/core": "workspace:*",
     "@portfolio/db": "workspace:*",
     "@tanstack/react-query": "^5.0.0",

@@ -1,15 +1,26 @@
-import { verify } from "@node-rs/argon2";
+import { hash, verify } from "@node-rs/argon2";
 import { eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { users } from "@portfolio/db";
-import { checkRateLimit, resetRateLimit } from "../../../../lib/auth/rate-limit.js";
+import { checkRateLimit, resetRateLimit } from "../../../../lib/auth/rate-limit";
 import {
   createSession,
+  deleteAllUserSessions,
   setSessionCookie,
-} from "../../../../lib/auth/session.js";
-import { db } from "../../../../lib/db/index.js";
+} from "../../../../lib/auth/session";
+import { db } from "../../../../lib/db/index";
+
+// Computed once at module load. Using a real hash ensures the dummy verify
+// call runs full argon2 work, preventing user-enumeration via timing.
+const dummyHashPromise = hash("dummy-password-for-timing-safety");
 
 export async function POST(request: NextRequest) {
+  // CSRF: reject cross-origin POSTs.
+  const origin = request.headers.get("origin");
+  if (origin !== null && origin !== new URL(request.url).origin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const ip =
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     "unknown";
@@ -51,9 +62,8 @@ export async function POST(request: NextRequest) {
 
   const user = userResults[0];
 
-  // Always verify to prevent timing attacks, even if user not found
-  const dummyHash =
-    "$argon2id$v=19$m=65536,t=2,p=1$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+  // Always verify to prevent timing attacks, even if user not found.
+  const dummyHash = await dummyHashPromise;
   const isValid = user
     ? await verify(user.passwordHash, password)
     : await verify(dummyHash, password).catch(() => false);
@@ -64,6 +74,9 @@ export async function POST(request: NextRequest) {
       { status: 401 }
     );
   }
+
+  // Invalidate all previous sessions before issuing a new one.
+  await deleteAllUserSessions(user.id);
 
   resetRateLimit(ip);
   const session = await createSession(user.id);

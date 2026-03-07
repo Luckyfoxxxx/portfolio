@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 interface DataPoint {
   date: string;
@@ -45,6 +45,7 @@ function formatPrice(n: number, currency: string) {
 }
 
 export function PriceChart({ data, currency = "USD" }: PriceChartProps) {
+  const gradientId = useId();
   const [timeframe, setTimeframe] = useState<Timeframe>("3M");
   const filtered = filterData(data, timeframe);
 
@@ -65,7 +66,7 @@ export function PriceChart({ data, currency = "USD" }: PriceChartProps) {
           <button
             key={tf}
             onClick={() => setTimeframe(tf)}
-            className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+            className={`rounded-md px-3 py-2 text-xs font-medium transition-colors ${
               timeframe === tf
                 ? "bg-gray-700 text-white"
                 : "text-gray-500 hover:text-gray-300"
@@ -78,7 +79,7 @@ export function PriceChart({ data, currency = "USD" }: PriceChartProps) {
       <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={filtered} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
           <defs>
-            <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor={color} stopOpacity={0.15} />
               <stop offset="95%" stopColor={color} stopOpacity={0} />
             </linearGradient>
@@ -123,7 +124,7 @@ export function PriceChart({ data, currency = "USD" }: PriceChartProps) {
             dataKey="price"
             stroke={color}
             strokeWidth={1.5}
-            fill="url(#priceGradient)"
+            fill={`url(#${gradientId})`}
             dot={false}
             activeDot={{ r: 3, fill: color }}
           />

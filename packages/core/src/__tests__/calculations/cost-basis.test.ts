@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   calculateCostBasisAverage,
   calculateCostBasisFIFO,
-} from "../../calculations/cost-basis.js";
-import type { TransactionRecord } from "../../types/index.js";
+} from "../../calculations/cost-basis";
+import type { TransactionRecord } from "../../types/index";
 
 const buy = (
   date: string,

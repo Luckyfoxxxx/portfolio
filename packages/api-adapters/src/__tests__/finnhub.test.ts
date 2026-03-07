@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { FinnhubAdapter } from "../finnhub/adapter.js";
+import { FinnhubAdapter } from "../finnhub/adapter";
 
 const server = setupServer();
 

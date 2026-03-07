@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { desc, eq } from "drizzle-orm";
-import { getSession } from "../../../../lib/auth/session.js";
-import { db } from "../../../../lib/db/index.js";
+import { getSession } from "../../../../lib/auth/session";
+import { db } from "../../../../lib/db/index";
 import { holdings, newsItems, priceSnapshots, transactions } from "@portfolio/db";
 import { calculatePnL } from "@portfolio/core/calculations";
-import { PriceChart } from "../../../../components/charts/price-chart.js";
-import { NewsFeed } from "../../../../components/holdings/news-feed.js";
+import { PriceChart } from "../../../../components/charts/price-chart";
+import { NewsFeed } from "../../../../components/holdings/news-feed";
 import type { TransactionRecord } from "@portfolio/core/types";
 
 export const dynamic = "force-dynamic";
@@ -154,7 +154,7 @@ export default async function HoldingPage({ params }: Props) {
           </div>
           <div className="divide-y divide-gray-800">
             {txResults.map((tx) => (
-              <div key={tx.id} className="flex items-center justify-between px-4 py-3">
+              <div key={tx.id} className="flex items-center justify-between px-4 py-3.5">
                 <div>
                   <span className={`text-xs font-medium uppercase ${
                     tx.type === "buy" ? "text-emerald-400" : tx.type === "sell" ? "text-red-400" : "text-blue-400"

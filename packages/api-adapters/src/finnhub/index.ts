@@ -1,1 +1,1 @@
-export { FinnhubAdapter } from "./adapter.js";
+export { FinnhubAdapter } from "./adapter";

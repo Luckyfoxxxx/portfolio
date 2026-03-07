@@ -1,4 +1,4 @@
-import type { PriceQuote, PriceService } from "./types.js";
+import type { PriceQuote, PriceService } from "./types";
 
 /**
  * PriceServiceWithFallback tries the primary adapter first,

@@ -1,10 +1,10 @@
-import { holdingsRouter } from "./holdings.js";
-import { newsRouter } from "./news.js";
-import { pricesRouter } from "./prices.js";
-import { router } from "./trpc.js";
+import { holdingsRouter } from "./holdings";
+import { newsRouter } from "./news";
+import { pricesRouter } from "./prices";
+import { router } from "./trpc";
 
-export { router } from "./trpc.js";
-export type { Context } from "./context.js";
+export { router } from "./trpc";
+export type { Context } from "./context";
 
 export const appRouter = router({
   holdings: holdingsRouter,

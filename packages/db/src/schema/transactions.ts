@@ -1,5 +1,5 @@
 import { integer, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { holdings } from "./holdings.js";
+import { holdings } from "./holdings";
 
 export const transactionTypeValues = ["buy", "sell", "dividend"] as const;
 export type TransactionType = (typeof transactionTypeValues)[number];

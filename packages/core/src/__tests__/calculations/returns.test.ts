@@ -3,8 +3,8 @@ import {
   annualizeReturn,
   calculateTimeWeightedReturn,
   calculateTotalReturn,
-} from "../../calculations/returns.js";
-import type { PeriodReturn } from "../../calculations/returns.js";
+} from "../../calculations/returns";
+import type { PeriodReturn } from "../../calculations/returns";
 
 const makePeriod = (
   returnPercent: number,

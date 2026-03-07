@@ -3,9 +3,10 @@ import { and, eq, gt } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { sessions, users } from "@portfolio/db";
 import type { Session, User } from "@portfolio/db";
-import { db } from "../db/index.js";
+import { db } from "../db/index";
+import { SESSION_COOKIE } from "./constants";
 
-export const SESSION_COOKIE = "portfolio_session";
+export { SESSION_COOKIE } from "./constants";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export function generateSessionId(): string {
@@ -50,12 +51,13 @@ export async function deleteAllUserSessions(userId: string): Promise<void> {
   await db.delete(sessions).where(eq(sessions.userId, userId));
 }
 
-// In Next.js 15 Route Handlers, cookies() must be awaited
+// __Host- cookies require: Secure=true, Path=/, no Domain attribute.
+// In Next.js 15 Route Handlers, cookies() must be awaited.
 export async function setSessionCookie(sessionId: string, expiresAt: Date) {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, sessionId, {
     httpOnly: true,
-    secure: process.env["NODE_ENV"] === "production",
+    secure: true,
     sameSite: "strict",
     expires: expiresAt,
     path: "/",
@@ -66,7 +68,7 @@ export async function clearSessionCookie() {
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, "", {
     httpOnly: true,
-    secure: process.env["NODE_ENV"] === "production",
+    secure: true,
     sameSite: "strict",
     maxAge: 0,
     path: "/",

@@ -1,4 +1,4 @@
-import type { HistoricalBar, PriceQuote, PriceService } from "../types.js";
+import type { HistoricalBar, PriceQuote, PriceService } from "../types";
 
 interface AlphaVantageTimeSeriesEntry {
   "1. open": string;
@@ -109,9 +109,9 @@ export class AlphaVantageAdapter implements PriceService {
         low: parseFloat(bar["3. low"]),
         close: parseFloat(bar["4. close"]),
         volume: parseInt(bar["6. volume"], 10),
-        adjClose: bar["5. adjusted close"]
-          ? parseFloat(bar["5. adjusted close"])
-          : undefined,
+        ...(bar["5. adjusted close"]
+          ? { adjClose: parseFloat(bar["5. adjusted close"]) }
+          : {}),
       }))
       .filter((bar) => bar.date >= from && bar.date <= to)
       .sort((a, b) => a.date.getTime() - b.date.getTime());

@@ -1,6 +1,5 @@
-import { initTRPC, TRPCError } from "@trpc/server";
-import { getSession } from "../auth/session.js";
-import { db } from "../db/index.js";
+import { getSession } from "../auth/session";
+import { db } from "../db/index";
 
 export async function createContext() {
   const session = await getSession();

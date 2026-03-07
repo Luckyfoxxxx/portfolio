@@ -1,4 +1,4 @@
-import type { TransactionRecord } from "../types/index.js";
+import type { TransactionRecord } from "../types/index";
 
 export interface PeriodReturn {
   periodStart: Date;

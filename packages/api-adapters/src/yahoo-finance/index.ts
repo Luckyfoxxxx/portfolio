@@ -1,1 +1,1 @@
-export { YahooFinanceAdapter } from "./adapter.js";
+export { YahooFinanceAdapter } from "./adapter";

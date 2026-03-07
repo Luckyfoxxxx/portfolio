@@ -56,6 +56,7 @@ export function HoldingsList({ holdings }: HoldingsListProps) {
               <div className="min-w-0">
                 <p className="font-medium">{holding.symbol}</p>
                 <p className="text-xs text-gray-500 truncate">{holding.name}</p>
+                <p className="text-xs text-gray-600">{holding.quantity} sh</p>
               </div>
               <div className="ml-4 text-right shrink-0">
                 <p className="font-medium tabular-nums">

@@ -4,7 +4,7 @@ import type {
   NewsArticle,
   PriceQuote,
   PriceService,
-} from "../types.js";
+} from "../types";
 
 export class YahooFinanceAdapter implements PriceService {
   private readonly source = "yahoo-finance";
@@ -24,13 +24,13 @@ export class YahooFinanceAdapter implements PriceService {
         ? new Date(result.regularMarketTime)
         : new Date(),
       source: this.source,
-      change: result.regularMarketChange,
-      changePercent: result.regularMarketChangePercent,
-      open: result.regularMarketOpen,
-      high: result.regularMarketDayHigh,
-      low: result.regularMarketDayLow,
-      volume: result.regularMarketVolume,
-      marketCap: result.marketCap,
+      ...(result.regularMarketChange !== undefined ? { change: result.regularMarketChange } : {}),
+      ...(result.regularMarketChangePercent !== undefined ? { changePercent: result.regularMarketChangePercent } : {}),
+      ...(result.regularMarketOpen !== undefined ? { open: result.regularMarketOpen } : {}),
+      ...(result.regularMarketDayHigh !== undefined ? { high: result.regularMarketDayHigh } : {}),
+      ...(result.regularMarketDayLow !== undefined ? { low: result.regularMarketDayLow } : {}),
+      ...(result.regularMarketVolume !== undefined ? { volume: result.regularMarketVolume } : {}),
+      ...(result.marketCap !== undefined ? { marketCap: result.marketCap } : {}),
     };
   }
 
@@ -65,7 +65,7 @@ export class YahooFinanceAdapter implements PriceService {
       low: bar.low ?? 0,
       close: bar.close ?? 0,
       volume: bar.volume ?? 0,
-      adjClose: bar.adjClose,
+      ...(bar.adjClose !== undefined ? { adjClose: bar.adjClose } : {}),
     }));
   }
 
@@ -80,8 +80,8 @@ export class YahooFinanceAdapter implements PriceService {
       headline: item.title,
       url: item.link,
       source: item.publisher,
-      publishedAt: new Date((item.providerPublishTime ?? 0) * 1000),
-      relatedSymbols: item.relatedTickers,
+      publishedAt: new Date(Number(item.providerPublishTime ?? 0) * 1000),
+      ...(item.relatedTickers !== undefined ? { relatedSymbols: item.relatedTickers } : {}),
     }));
   }
 }

@@ -1,3 +1,3 @@
-export * from "./cost-basis.js";
-export * from "./pnl.js";
-export * from "./returns.js";
+export * from "./cost-basis";
+export * from "./pnl";
+export * from "./returns";

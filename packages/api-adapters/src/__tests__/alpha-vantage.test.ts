@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { http, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import { AlphaVantageAdapter } from "../alpha-vantage/adapter.js";
+import { AlphaVantageAdapter } from "../alpha-vantage/adapter";
 
 const server = setupServer();
 

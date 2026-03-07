@@ -6,10 +6,10 @@ import {
   calculateCostBasisFIFO,
   calculatePnL,
   calculateRealizedPnL,
-} from "../calculations/index.js";
-import { addHoldingSchema, addTransactionSchema, symbolSchema } from "../schemas/index.js";
-import type { TransactionRecord } from "../types/index.js";
-import { protectedProcedure, router } from "./trpc.js";
+} from "../calculations/index";
+import { addHoldingSchema, addTransactionSchema, symbolSchema } from "../schemas/index";
+import type { TransactionRecord } from "../types/index";
+import { protectedProcedure, router } from "./trpc";
 
 export const holdingsRouter = router({
   list: protectedProcedure.query(async ({ ctx }) => {

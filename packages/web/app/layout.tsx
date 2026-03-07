@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
-import { TRPCProvider } from "../lib/trpc/client.js";
+import { TRPCProvider } from "../lib/trpc/client";
 import "./globals.css";
 
 const geist = Geist({
@@ -16,7 +16,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
 };
 
 export default function RootLayout({

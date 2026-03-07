@@ -53,7 +53,7 @@ export default function LoginPage() {
               type="text"
               autoComplete="username"
               required
-              className="rounded-lg border border-gray-800 bg-gray-900 px-4 py-2.5 text-sm outline-none focus:border-gray-600"
+              className="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 text-sm outline-none focus:border-gray-600"
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -66,7 +66,7 @@ export default function LoginPage() {
               type="password"
               autoComplete="current-password"
               required
-              className="rounded-lg border border-gray-800 bg-gray-900 px-4 py-2.5 text-sm outline-none focus:border-gray-600"
+              className="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 text-sm outline-none focus:border-gray-600"
             />
           </div>
           {error && (
@@ -75,7 +75,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="mt-2 rounded-lg bg-white px-4 py-2.5 text-sm font-medium text-gray-950 transition-opacity disabled:opacity-50"
+            className="mt-2 rounded-lg bg-white px-4 py-3 text-sm font-medium text-gray-950 transition-opacity hover:bg-gray-100 disabled:opacity-50"
           >
             {loading ? "Signing in…" : "Sign in"}
           </button>

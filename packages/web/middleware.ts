@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE } from "./lib/auth/session.js";
+import { SESSION_COOKIE } from "./lib/auth/constants";
 
 // Middleware runs on Edge — no DB access here.
 // We only check cookie presence; actual validation happens in each route.

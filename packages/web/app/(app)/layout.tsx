@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { getSession } from "../../lib/auth/session.js";
-import { NavBar } from "../../components/ui/nav-bar.js";
+import { getSession } from "../../lib/auth/session";
+import { NavBar } from "../../components/ui/nav-bar";
 
 export default async function AppLayout({
   children,

@@ -1,4 +1,4 @@
-import type { HistoricalBar, PriceQuote, PriceService } from "../types.js";
+import type { HistoricalBar, PriceQuote, PriceService } from "../types";
 
 interface FinnhubQuoteResponse {
   c: number; // current price

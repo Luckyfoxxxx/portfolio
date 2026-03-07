@@ -33,7 +33,7 @@ export function NavBar({ username }: NavBarProps) {
             <Link
               key={link.href}
               href={link.href}
-              className={`text-sm transition-colors ${
+              className={`py-2 text-sm transition-colors ${
                 pathname.startsWith(link.href)
                   ? "text-white"
                   : "text-gray-400 hover:text-white"
@@ -47,7 +47,7 @@ export function NavBar({ username }: NavBarProps) {
           <span className="text-xs text-gray-500">{username}</span>
           <button
             onClick={handleLogout}
-            className="text-xs text-gray-400 transition-colors hover:text-white"
+            className="px-1 py-2 text-sm text-gray-400 transition-colors hover:text-white"
           >
             Sign out
           </button>

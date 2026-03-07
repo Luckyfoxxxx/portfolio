@@ -1,5 +1,5 @@
-import type { HoldingSnapshot, PnLResult, TransactionRecord } from "../types/index.js";
-import { calculateCostBasisFIFO } from "./cost-basis.js";
+import type { HoldingSnapshot, PnLResult, TransactionRecord } from "../types/index";
+import { calculateCostBasisFIFO } from "./cost-basis";
 
 /**
  * Calculates unrealized and realized P&L for a position.

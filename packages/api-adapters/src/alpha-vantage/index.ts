@@ -1,1 +1,1 @@
-export { AlphaVantageAdapter } from "./adapter.js";
+export { AlphaVantageAdapter } from "./adapter";

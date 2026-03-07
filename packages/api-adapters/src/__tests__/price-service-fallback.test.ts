@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { PriceQuote, PriceService } from "../types.js";
-import { PriceServiceWithFallback } from "../price-service.js";
+import type { PriceQuote, PriceService } from "../types";
+import { PriceServiceWithFallback } from "../price-service";
 
 const makeQuote = (symbol: string, price: number): PriceQuote => ({
   symbol,

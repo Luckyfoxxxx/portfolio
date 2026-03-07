@@ -1,6 +1,6 @@
-import { YahooFinanceAdapter } from "@portfolio/api-adapters";
+import { YahooFinanceAdapter, type NewsArticle } from "@portfolio/api-adapters";
 import { priceSnapshots, newsItems, holdings } from "@portfolio/db";
-import { db } from "../db/index.js";
+import { db } from "../db/index";
 
 const adapter = new YahooFinanceAdapter();
 
@@ -44,7 +44,8 @@ async function refreshPrices() {
   // Refresh news for each symbol (less frequently — once per cycle)
   for (const symbol of symbols) {
     try {
-      const articles = await adapter.getNews?.(symbol, 5) ?? [];
+      const articles = (await adapter.getNews?.(symbol, 5) ?? [])
+        .filter((a: NewsArticle) => a.url.startsWith("https://") || a.url.startsWith("http://"));
       for (const article of articles) {
         await db
           .insert(newsItems)

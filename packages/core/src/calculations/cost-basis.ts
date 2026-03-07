@@ -1,4 +1,4 @@
-import type { CostBasisLot, CostBasisResult, TransactionRecord } from "../types/index.js";
+import type { CostBasisLot, CostBasisResult, TransactionRecord } from "../types/index";
 
 /**
  * Calculates cost basis using FIFO (First In, First Out) method.

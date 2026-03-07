@@ -1,8 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { newsItems } from "@portfolio/db";
-import { symbolSchema } from "../schemas/index.js";
-import { protectedProcedure, router } from "./trpc.js";
+import { symbolSchema } from "../schemas/index";
+import { protectedProcedure, router } from "./trpc";
 
 export const newsRouter = router({
   bySymbol: protectedProcedure
