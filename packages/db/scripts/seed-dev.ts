@@ -2,9 +2,18 @@ import { hash } from "@node-rs/argon2";
 import Database from "better-sqlite3";
 import { drizzle } from "drizzle-orm/better-sqlite3";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { mkdirSync } from "fs";
+import { mkdirSync, readFileSync } from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+
+// Load root-level .env.local (gitignored, not auto-loaded by Node/tsx)
+try {
+  const envFile = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../../../.env.local"), "utf8");
+  for (const line of envFile.split("\n")) {
+    const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
+    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+  }
+} catch { /* .env.local absent — env vars must be set in the shell */ }
 import * as schema from "../src/schema/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -244,13 +253,19 @@ async function main() {
   sqlite.pragma("foreign_keys = ON");
 
   // User
-  const passwordHash = await hash("password123456");
+  const seedUsername = process.env["SEED_USERNAME"] ?? "admin";
+  const seedPassword = process.env["SEED_PASSWORD"];
+  if (!seedPassword) {
+    console.error("Error: SEED_PASSWORD env var is required. Set it in your shell or .env.local before running db:seed-dev.");
+    process.exit(1);
+  }
+  const passwordHash = await hash(seedPassword);
   await db.insert(schema.users).values({
     id: "dev-user-001",
-    username: "admin",
+    username: seedUsername,
     passwordHash,
   });
-  console.log("User created: admin / password123456");
+  console.log(`User created: ${seedUsername}`);
 
   // Holdings + transactions
   for (const def of HOLDINGS_DEF) {
