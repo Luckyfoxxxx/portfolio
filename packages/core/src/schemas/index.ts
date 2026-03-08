@@ -4,7 +4,6 @@ export const transactionTypeSchema = z.enum(["buy", "sell", "dividend"]);
 
 export const addTransactionSchema = z.object({
   holdingId: z.number().int().positive(),
-  symbol: z.string().min(1).max(20).toUpperCase(),
   type: transactionTypeSchema,
   date: z.string().date(),
   quantity: z.number().positive(),
@@ -34,8 +33,9 @@ export const updateHoldingSchema = z.object({
 });
 
 export const loginSchema = z.object({
-  username: z.string().min(1),
-  password: z.string().min(1),
+  // Upper bounds prevent oversized inputs from reaching argon2 hashing.
+  username: z.string().min(1).max(100),
+  password: z.string().min(1).max(1000),
 });
 
 export const symbolSchema = z.string().min(1).max(20).toUpperCase();

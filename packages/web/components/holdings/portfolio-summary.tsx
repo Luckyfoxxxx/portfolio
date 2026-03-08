@@ -1,18 +1,5 @@
 import type { PnLResult } from "@portfolio/core/types";
-
-function formatCurrency(n: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n);
-}
-
-function formatPercent(n: number) {
-  const sign = n >= 0 ? "+" : "";
-  return `${sign}${n.toFixed(2)}%`;
-}
+import { formatCurrency, formatPercent } from "../../lib/format";
 
 interface PortfolioSummaryProps {
   pnl: PnLResult;

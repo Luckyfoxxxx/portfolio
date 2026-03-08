@@ -16,9 +16,15 @@ export function NewsFeed({ news }: NewsFeedProps) {
       </div>
       <div className="divide-y divide-gray-800">
         {news.map((item) => {
+          const isLink = isSafeUrl(item.url);
           const content = (
             <>
-              <p className="text-sm leading-snug">{item.headline}</p>
+              <p className="text-sm leading-snug">
+                {item.headline}
+                {isLink && (
+                  <span className="ml-1 text-gray-500" aria-label="opens in new tab">↗</span>
+                )}
+              </p>
               <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
                 {item.source && <span>{item.source}</span>}
                 <span>
@@ -32,7 +38,7 @@ export function NewsFeed({ news }: NewsFeedProps) {
             </>
           );
 
-          return isSafeUrl(item.url) ? (
+          return isLink ? (
             <a
               key={item.id}
               href={item.url}

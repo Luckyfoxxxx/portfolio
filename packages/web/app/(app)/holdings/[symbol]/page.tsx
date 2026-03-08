@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { getSession } from "../../../../lib/auth/session";
 import { db } from "../../../../lib/db/index";
@@ -7,25 +8,12 @@ import { calculatePnL } from "@portfolio/core/calculations";
 import { PriceChart } from "../../../../components/charts/price-chart";
 import { NewsFeed } from "../../../../components/holdings/news-feed";
 import type { TransactionRecord } from "@portfolio/core/types";
+import { formatCurrency, formatPercent } from "../../../../lib/format";
 
 export const dynamic = "force-dynamic";
 
 interface Props {
   params: Promise<{ symbol: string }>;
-}
-
-function formatCurrency(n: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n);
-}
-
-function formatPercent(n: number) {
-  const sign = n >= 0 ? "+" : "";
-  return `${sign}${n.toFixed(2)}%`;
 }
 
 export default async function HoldingPage({ params }: Props) {
@@ -96,6 +84,9 @@ export default async function HoldingPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-gray-400 transition-colors hover:text-white">
+        ← Back
+      </Link>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -107,7 +98,7 @@ export default async function HoldingPage({ params }: Props) {
             {formatCurrency(currentPrice, holding.currency)}
           </p>
           <p className={`text-sm tabular-nums ${isUp ? "text-emerald-400" : "text-red-400"}`}>
-            {formatPercent(pnl.unrealizedPnLPercent)}
+            {formatPercent(pnl.unrealizedPnLPercent)} vs cost
           </p>
         </div>
       </div>
@@ -125,7 +116,7 @@ export default async function HoldingPage({ params }: Props) {
           },
         ].map((stat) => (
           <div key={stat.label} className="rounded-xl border border-gray-800 bg-gray-900 p-4">
-            <p className="text-xs text-gray-500">{stat.label}</p>
+            <p className="text-xs text-gray-400">{stat.label}</p>
             <p className={`mt-1 text-lg font-semibold tabular-nums ${
               stat.positive === undefined ? "text-white" : stat.positive ? "text-emerald-400" : "text-red-400"
             }`}>
@@ -169,6 +160,9 @@ export default async function HoldingPage({ params }: Props) {
                   </p>
                   <p className="text-xs text-gray-500">
                     {tx.date.toLocaleDateString()}
+                    {tx.fees > 0 && (
+                      <span className="ml-1">+{formatCurrency(tx.fees, tx.currency)} fees</span>
+                    )}
                   </p>
                 </div>
               </div>

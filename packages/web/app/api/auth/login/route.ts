@@ -54,6 +54,11 @@ export async function POST(request: NextRequest) {
 
   const { username, password } = body as { username: string; password: string };
 
+  // Hard length caps before argon2 to prevent CPU-exhaustion via oversized inputs.
+  if (username.length > 100 || password.length > 1000) {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
   const userResults = await db
     .select()
     .from(users)

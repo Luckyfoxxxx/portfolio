@@ -12,8 +12,11 @@ export default async function AppLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
+      <a href="#main-content" className="skip-to-main">
+        Skip to main content
+      </a>
       <NavBar username={session.user.username} />
-      <main className="flex-1 p-4 md:p-6">{children}</main>
+      <main id="main-content" className="flex-1 p-4 md:p-6">{children}</main>
     </div>
   );
 }

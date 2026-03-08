@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "../../lib/trpc/client";
 
@@ -25,6 +25,15 @@ export function AddTransactionForm({ holdings }: AddTransactionFormProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const firstFieldRef = useRef<HTMLSelectElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      // Defer one tick so the form is rendered before we focus
+      const id = setTimeout(() => firstFieldRef.current?.focus(), 0);
+      return () => clearTimeout(id);
+    }
+  }, [open]);
 
   const [holdingId, setHoldingId] = useState<string>(
     holdings[0] ? String(holdings[0].id) : ""
@@ -86,15 +95,8 @@ export function AddTransactionForm({ holdings }: AddTransactionFormProps) {
       return;
     }
 
-    const selectedHolding = holdings.find((h) => h.id === parsedId);
-    if (!selectedHolding) {
-      setError("Invalid holding selected.");
-      return;
-    }
-
     addTransaction.mutate({
       holdingId: parsedId,
-      symbol: selectedHolding.symbol,
       type,
       date,
       quantity: parsedQty,
@@ -119,12 +121,14 @@ export function AddTransactionForm({ holdings }: AddTransactionFormProps) {
           {/* Holding + Type row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400">Holding</label>
+              <label htmlFor="tx-holding" className="text-xs text-gray-400">Holding</label>
               <select
+                ref={firstFieldRef}
+                id="tx-holding"
                 value={holdingId}
                 onChange={(e) => setHoldingId(e.target.value)}
                 required
-                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500"
+                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-500"
               >
                 {holdings.map((h) => (
                   <option key={h.id} value={h.id}>
@@ -135,11 +139,12 @@ export function AddTransactionForm({ holdings }: AddTransactionFormProps) {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400">Type</label>
+              <label htmlFor="tx-type" className="text-xs text-gray-400">Type</label>
               <select
+                id="tx-type"
                 value={type}
                 onChange={(e) => setType(e.target.value as TxType)}
-                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500"
+                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-500"
               >
                 {TRANSACTION_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -151,21 +156,23 @@ export function AddTransactionForm({ holdings }: AddTransactionFormProps) {
           </div>
 
           {/* Date + Quantity + Price row */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400">Date</label>
+              <label htmlFor="tx-date" className="text-xs text-gray-400">Date</label>
               <input
+                id="tx-date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
-                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500"
+                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-500"
               />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400">Quantity</label>
+              <label htmlFor="tx-quantity" className="text-xs text-gray-400">Quantity</label>
               <input
+                id="tx-quantity"
                 type="number"
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
@@ -173,13 +180,14 @@ export function AddTransactionForm({ holdings }: AddTransactionFormProps) {
                 min="0"
                 step="any"
                 placeholder="0"
-                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500"
+                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-500"
               />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400">Price per share</label>
+              <label htmlFor="tx-price" className="text-xs text-gray-400">Price per share</label>
               <input
+                id="tx-price"
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
@@ -187,7 +195,7 @@ export function AddTransactionForm({ holdings }: AddTransactionFormProps) {
                 min="0"
                 step="any"
                 placeholder="0.00"
-                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500"
+                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-500"
               />
             </div>
           </div>
@@ -195,32 +203,34 @@ export function AddTransactionForm({ holdings }: AddTransactionFormProps) {
           {/* Fees + Notes row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400">Fees (optional)</label>
+              <label htmlFor="tx-fees" className="text-xs text-gray-400">Fees (optional)</label>
               <input
+                id="tx-fees"
                 type="number"
                 value={fees}
                 onChange={(e) => setFees(e.target.value)}
                 min="0"
                 step="any"
                 placeholder="0.00"
-                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500"
+                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-500"
               />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-gray-400">Notes (optional)</label>
+              <label htmlFor="tx-notes" className="text-xs text-gray-400">Notes (optional)</label>
               <input
+                id="tx-notes"
                 type="text"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 maxLength={500}
                 placeholder=""
-                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500"
+                className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm outline-none focus:border-gray-500 focus:ring-2 focus:ring-gray-500"
               />
             </div>
           </div>
 
-          {error && <p className="text-xs text-red-400">{error}</p>}
+          {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
 
           <div className="flex items-center justify-end gap-3 pt-1">
             <button

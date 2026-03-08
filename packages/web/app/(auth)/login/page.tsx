@@ -53,7 +53,7 @@ export default function LoginPage() {
               type="text"
               autoComplete="username"
               required
-              className="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 text-sm outline-none focus:border-gray-600"
+              className="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 text-sm outline-none focus:border-gray-600 focus:ring-2 focus:ring-gray-500"
             />
           </div>
           <div className="flex flex-col gap-1.5">
@@ -66,11 +66,11 @@ export default function LoginPage() {
               type="password"
               autoComplete="current-password"
               required
-              className="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 text-sm outline-none focus:border-gray-600"
+              className="rounded-lg border border-gray-800 bg-gray-900 px-4 py-3 text-sm outline-none focus:border-gray-600 focus:ring-2 focus:ring-gray-500"
             />
           </div>
           {error && (
-            <p className="text-sm text-red-400">{error}</p>
+            <p role="alert" className="text-sm text-red-400">{error}</p>
           )}
           <button
             type="submit"

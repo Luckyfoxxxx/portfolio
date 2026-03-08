@@ -22,7 +22,7 @@ export default async function DashboardPage() {
         <h1 className="mb-6 text-xl font-semibold">Dashboard</h1>
         <div className="rounded-xl border border-gray-800 bg-gray-900 p-8 text-center">
           <p className="text-gray-400">No holdings yet.</p>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-gray-400">
             Add your first holding to get started.
           </p>
         </div>

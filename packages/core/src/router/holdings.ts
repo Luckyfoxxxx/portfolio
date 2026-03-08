@@ -101,6 +101,13 @@ export const holdingsRouter = router({
         .where(eq(transactions.holdingId, input.holdingId));
     }),
 
+  deleteTransaction: protectedProcedure
+    .input(z.object({ id: z.number().int().positive() }))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.delete(transactions).where(eq(transactions.id, input.id));
+      return { success: true };
+    }),
+
   addTransaction: protectedProcedure
     .input(addTransactionSchema)
     .mutation(async ({ ctx, input }) => {
@@ -117,6 +124,7 @@ export const holdingsRouter = router({
         .insert(transactions)
         .values({
           ...input,
+          symbol: holdingResults[0].symbol,
           date: new Date(input.date),
         })
         .returning();

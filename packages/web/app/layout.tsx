@@ -26,6 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geist.variable} font-sans antialiased bg-gray-950 text-gray-50 min-h-screen`}>
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:rounded focus:bg-white focus:p-3 focus:text-gray-950">Skip to content</a>
         <TRPCProvider>{children}</TRPCProvider>
       </body>
     </html>

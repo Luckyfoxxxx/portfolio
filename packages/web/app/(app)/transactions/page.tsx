@@ -4,16 +4,9 @@ import { getSession } from "../../../lib/auth/session";
 import { db } from "../../../lib/db/index";
 import { holdings, transactions } from "@portfolio/db";
 import { AddTransactionForm } from "../../../components/transactions/add-transaction-form";
+import { TransactionList } from "../../../components/transactions/transaction-list";
 
 export const dynamic = "force-dynamic";
-
-function formatCurrency(n: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-  }).format(n);
-}
 
 export default async function TransactionsPage() {
   const session = await getSession();
@@ -40,43 +33,7 @@ export default async function TransactionsPage() {
         </div>
       ) : (
         <div className="rounded-xl border border-gray-800 bg-gray-900 overflow-hidden">
-          <div className="divide-y divide-gray-800">
-            {allTransactions.map(({ tx }) => (
-              <div key={tx.id} className="flex items-center justify-between px-4 py-3.5">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-xs font-medium uppercase ${
-                        tx.type === "buy"
-                          ? "text-emerald-400"
-                          : tx.type === "sell"
-                          ? "text-red-400"
-                          : "text-blue-400"
-                      }`}
-                    >
-                      {tx.type}
-                    </span>
-                    <span className="font-medium">{tx.symbol}</span>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    {tx.quantity} shares @ {formatCurrency(tx.price, tx.currency)}
-                  </p>
-                </div>
-                <div className="ml-4 text-right shrink-0">
-                  <p className="text-sm font-medium tabular-nums">
-                    {formatCurrency(tx.quantity * tx.price, tx.currency)}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {tx.date.toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <TransactionList transactions={allTransactions.map(({ tx }) => tx)} />
         </div>
       )}
     </div>

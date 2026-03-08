@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { useId, useState } from "react";
+import { formatCurrency } from "../../lib/format";
 
 interface DataPoint {
   date: string;
@@ -35,23 +36,14 @@ function filterData(data: DataPoint[], timeframe: Timeframe): DataPoint[] {
   return data.filter((d) => new Date(d.date) >= cutoff);
 }
 
-function formatPrice(n: number, currency: string) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n);
-}
-
 export function PriceChart({ data, currency = "USD" }: PriceChartProps) {
   const gradientId = useId();
   const [timeframe, setTimeframe] = useState<Timeframe>("3M");
   const filtered = filterData(data, timeframe);
 
   const prices = filtered.map((d) => d.price);
-  const minPrice = Math.min(...prices) * 0.995;
-  const maxPrice = Math.max(...prices) * 1.005;
+  const minPrice = filtered.length > 0 ? Math.min(...prices) * 0.995 : 0;
+  const maxPrice = filtered.length > 0 ? Math.max(...prices) * 1.005 : 0;
 
   const firstPrice = filtered[0]?.price ?? 0;
   const lastPrice = filtered[filtered.length - 1]?.price ?? 0;
@@ -76,6 +68,9 @@ export function PriceChart({ data, currency = "USD" }: PriceChartProps) {
           </button>
         ))}
       </div>
+      {filtered.length === 0 ? (
+        <p className="py-12 text-center text-sm text-gray-500">No data for this timeframe.</p>
+      ) : (
       <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={filtered} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
           <defs>
@@ -97,7 +92,7 @@ export function PriceChart({ data, currency = "USD" }: PriceChartProps) {
           />
           <YAxis
             domain={[minPrice, maxPrice]}
-            tickFormatter={(v: number) => formatPrice(v, currency)}
+            tickFormatter={(v: number) => formatCurrency(v, currency)}
             tick={{ fontSize: 10, fill: "#6b7280" }}
             axisLine={false}
             tickLine={false}
@@ -110,7 +105,7 @@ export function PriceChart({ data, currency = "USD" }: PriceChartProps) {
               borderRadius: "8px",
               fontSize: "12px",
             }}
-            formatter={(value) => [formatPrice(Number(value), currency), "Price"]}
+            formatter={(value) => [formatCurrency(Number(value), currency), "Price"]}
             labelFormatter={(label) =>
               new Date(String(label)).toLocaleDateString("en-US", {
                 year: "numeric",
@@ -130,6 +125,7 @@ export function PriceChart({ data, currency = "USD" }: PriceChartProps) {
           />
         </AreaChart>
       </ResponsiveContainer>
+      )}
     </div>
   );
 }
