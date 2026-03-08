@@ -6,7 +6,7 @@
 - [x] **UX review** — Review all pages (login, dashboard, holdings, transactions) for usability, accessibility, loading/error/empty states, and mobile responsiveness.
 ## UX Review — 2026-03-07
 
-> Reviewed visually in Chrome at ~707px and desktop widths. Server started via `pnpm dev:testdb` (seed data: admin/password123456, 7 holdings).
+> Reviewed visually in Chrome at ~707px and desktop widths. Server started via `pnpm dev:testdb` (seed data: dev user, 7 holdings).
 
 ### Bug found during review
 - [x] **`dev:testdb` script uses a relative DB path that breaks** — `DATABASE_URL=data/test.db` resolves relative to `packages/web/` CWD, not the repo root; fixed to `DATABASE_URL=$(pwd)/data/test.db` equivalent — use `file:../../data/test.db` or absolute path. Fixed in `package.json`.
@@ -54,7 +54,7 @@
 - [ ] **`text-gray-400` on `bg-gray-900`** — the quantity "shares" label may still fall short of WCAG AA at small text sizes; verify with a contrast checker
 
 - [x] **Edit holdings from GUI** — Add UI to update an existing holding (name, quantity, avg cost basis, currency, exchange) with a tRPC mutation on the backend.
-- [x] **Test DB with dev seed data** — Add `packages/db/scripts/seed-dev.ts` (non-interactive, deterministic) that runs migrations on `data/test.db` and populates it with a user (`admin`/`password123456`), 7 holdings (VTI, VOO, VXUS, AAPL, MSFT, NVDA, GOOGL), ~2 years of transactions, 30 days of price snapshots, and news items. Add root scripts `db:seed-dev` and `dev:testdb` (points Next.js at `data/test.db`).
+- [x] **Test DB with dev seed data** — Add `packages/db/scripts/seed-dev.ts` (non-interactive, deterministic) that runs migrations on `data/test.db` and populates it with a dev user, 7 holdings (VTI, VOO, VXUS, AAPL, MSFT, NVDA, GOOGL), ~2 years of transactions, 30 days of price snapshots, and news items. Add root scripts `db:seed-dev` and `dev:testdb` (points Next.js at `data/test.db`). Credentials defined in the seed script.
 
 ## Agent Findings — Security (2026-03-08)
 
