@@ -242,3 +242,12 @@ chmod +x /tmp/portfolio-coordinator.sh /tmp/portfolio-team-launch.sh \
 ```
 
 Tell the user the `tests` window is the coordinator — it will sit idle polling every 15 seconds until all three agents write their sentinel files, then kick off the test loop automatically. Each fixer iteration is capped; if tests still fail after the maximum attempts the coordinator exits non-zero and prints a message for manual review.
+
+Also tell the user they can jump to any teammate's window with:
+
+```
+tmux select-window -t portfolio-team:ux
+tmux select-window -t portfolio-team:security
+tmux select-window -t portfolio-team:principal
+tmux select-window -t portfolio-team:tests
+```

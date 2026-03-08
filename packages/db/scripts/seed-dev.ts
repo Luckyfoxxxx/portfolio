@@ -9,7 +9,7 @@ import * as schema from "../src/schema/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH =
-  process.env["DATABASE_URL"] ?? path.join(__dirname, "../../../data/test.db");
+  process.env["DATABASE_URL"] ?? path.join(__dirname, "../../../data/portfolio.db");
 const MIGRATIONS_FOLDER = path.join(__dirname, "../src/migrations");
 
 mkdirSync(path.dirname(DB_PATH), { recursive: true });
