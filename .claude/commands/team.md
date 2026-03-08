@@ -1,148 +1,59 @@
 ---
-description: Launch the full engineering team — UX designer, security engineer, and principal engineer — as autonomous Claude agents in separate tmux windows. Each reads TODO.md, claims and completes tasks, logs findings, and reports back when done. A coordinator window waits for all three to finish, then runs the full test suite and iterates with a fixer agent until all tests pass.
+description: Launch the full engineering team — UX designer, security engineer, and principal engineer — as autonomous Claude agents in separate tmux windows. Each gets an isolated git worktree on its own branch, reads TODO.md, claims and completes tasks, commits, and pushes a PR branch. A coordinator window waits for all three to finish then opens draft PRs for review.
 allowed-tools: Bash, Write
 ---
 
 Spin up a four-window tmux session called `portfolio-team`:
-- **ux** — UX designer agent
-- **security** — Security engineer agent
-- **principal** — Principal engineer agent
-- **tests** — Coordinator: waits for all three, then runs `pnpm test` in a loop, launching a fixer agent on each failure until tests are green
+- **ux** — UX designer agent (worktree: `/tmp/portfolio-wt-ux`, branch: `team/ux-<date>`)
+- **security** — Security engineer agent (worktree: `/tmp/portfolio-wt-security`, branch: `team/security-<date>`)
+- **principal** — Principal engineer agent (worktree: `/tmp/portfolio-wt-principal`, branch: `team/principal-<date>`)
+- **coordinator** — Waits for all three agents to finish, then opens a draft PR for each branch
 
-## Step 1 — Write agent prompt files
+## Step 1 — Write the fixer prompt
 
-Write the following files to disk.
-
-**`/tmp/portfolio-agent-ux.txt`:**
-
-```
-You are the UX designer / frontend engineer for a portfolio tracker app.
-Stack: Next.js 15 App Router, TypeScript, Tailwind CSS, tRPC, shadcn-like components.
-Repo root: /home/lucky/projects/portfolio
-
-YOUR JOB:
-1. Read TODO.md at the repo root.
-2. Pick 2–4 unchecked tasks that are UX, accessibility, visual polish, or responsive-design related.
-   Prefer items listed under "UX Review" sections. Do not take tasks that are clearly security or backend architecture.
-3. Read every source file you need before editing it.
-4. Implement the fixes. Write working, production-quality code.
-5. While working, if you spot additional UX issues not already listed, add them to TODO.md
-   under a new section: "## Agent Findings — UX (<today's date>)"
-6. Check off each task in TODO.md with [x] as you complete it.
-7. When finished, append to TODO.md:
-
-## UX Agent Report — <today's date>
-### Completed
-- <bullet per task>
-### Found but not fixed
-- <anything you added to findings but did not implement>
-
-8. As your absolute final action, use the Bash tool to run: touch /tmp/portfolio-agent-ux.done
-
-Work fully autonomously. Never ask for confirmation. Do not run the dev server. Do not git commit.
-```
-
-**`/tmp/portfolio-agent-security.txt`:**
-
-```
-You are the security engineer for a portfolio tracker app.
-Stack: Next.js 15 App Router, TypeScript, tRPC, Drizzle ORM, better-sqlite3 (local) / PostgreSQL (prod),
-       argon2 password hashing, HttpOnly session cookies, in-memory rate limiter.
-Repo root: /home/lucky/projects/portfolio
-
-YOUR JOB:
-1. Read TODO.md at the repo root.
-2. Pick 2–4 unchecked tasks related to security, auth, input validation, cookie hardening,
-   error message leakage, or dependency CVEs. Do not take tasks that are purely UX or backend architecture.
-3. Read every source file you need before editing it.
-4. Implement the fixes. Focus areas:
-   - Validate and sanitize all user input at API/tRPC boundaries
-   - Ensure errors exposed to the client never leak stack traces or internal details
-   - Cookie flags (HttpOnly, Secure, SameSite) and session expiry
-   - Rate limiting coverage on all sensitive routes
-   - SQL/NoSQL injection surface via Drizzle parameterization
-5. While working, if you discover additional vulnerabilities or hardening gaps, add them to TODO.md
-   under a new section: "## Agent Findings — Security (<today's date>)"
-6. Check off each task in TODO.md with [x] as you complete it.
-7. When finished, append to TODO.md:
-
-## Security Agent Report — <today's date>
-### Completed
-- <bullet per task>
-### Found but not fixed
-- <anything you added to findings but did not implement>
-
-8. As your absolute final action, use the Bash tool to run: touch /tmp/portfolio-agent-security.done
-
-Work fully autonomously. Never ask for confirmation. Do not run the dev server. Do not git commit.
-```
-
-**`/tmp/portfolio-agent-principal.txt`:**
-
-```
-You are the principal engineer for a portfolio tracker app.
-Stack: pnpm monorepo — packages: web (Next.js 15), db (Drizzle ORM), core (tRPC + calculations), api-adapters (price feeds).
-Repo root: /home/lucky/projects/portfolio
-
-YOUR JOB:
-1. Read TODO.md at the repo root.
-2. Pick 2–4 unchecked tasks that are engineering concerns: code quality, DRY violations, type safety,
-   performance, developer experience, test coverage, or architectural bugs.
-   Do not take tasks that are purely UX polish or security hardening.
-   A good candidate: "formatCurrency / formatPercent duplicated in 4 files — extract to packages/web/lib/format.ts"
-3. Read every source file you need before editing it.
-4. Implement the fixes. Prefer small, focused, verifiable changes.
-5. While working, if you spot additional technical debt, bugs, or missing tests, add them to TODO.md
-   under a new section: "## Agent Findings — Engineering (<today's date>)"
-6. Check off each task in TODO.md with [x] as you complete it.
-7. When finished, append to TODO.md:
-
-## Principal Engineer Report — <today's date>
-### Completed
-- <bullet per task>
-### Found but not fixed
-- <anything you added to findings but did not implement>
-
-8. As your absolute final action, use the Bash tool to run: touch /tmp/portfolio-agent-principal.done
-
-Work fully autonomously. Never ask for confirmation. Do not run the dev server. Do not git commit.
-```
-
-**`/tmp/portfolio-fixer-prompt.txt`:**
+Write **`/tmp/portfolio-fixer-prompt.txt`**:
 
 ```
 You are a test-fixer engineer for a portfolio tracker app.
 Stack: pnpm monorepo — packages: web (Next.js 15, vitest), db (Drizzle), core (vitest), api-adapters (vitest).
-Repo root: /home/lucky/projects/portfolio
 
 The engineering team just made code changes that broke the test suite.
 The failing test output is in /tmp/portfolio-test-output.txt
+Your worktree is at: WORKTREE_PATH
 
 YOUR JOB:
 1. Read /tmp/portfolio-test-output.txt to understand which tests are failing and why.
-2. Read the relevant source files and test files.
+2. Read the relevant source files and test files inside your worktree.
 3. Fix the root cause in the source code.
-   - Do NOT delete tests or mark them skipped unless the tested behavior was intentionally removed.
+   - Do NOT delete tests or mark them skipped unless the tested behaviour was intentionally removed.
    - If a test expectation is wrong because the code behaviour legitimately changed, update the expectation with a comment explaining why.
-4. After your changes, run `pnpm test` from /home/lucky/projects/portfolio to verify all tests pass.
-5. Work autonomously. Do not git commit.
+4. After your changes, run `pnpm test` from the worktree to verify all tests pass.
+5. Work autonomously. Do not git commit — the calling agent will handle that.
 ```
 
 ## Step 2 — Write the coordinator script
 
-Write `/tmp/portfolio-coordinator.sh`:
+Write **`/tmp/portfolio-coordinator.sh`**:
 
 ```bash
 #!/usr/bin/env bash
 REPO="/home/lucky/projects/portfolio"
-MAX_ITERATIONS=5
+
+# Load branch names written by the launcher
+source /tmp/portfolio-team-state.env
 
 echo "[coordinator] Clearing stale sentinels..."
 rm -f /tmp/portfolio-agent-ux.done \
       /tmp/portfolio-agent-security.done \
       /tmp/portfolio-agent-principal.done
 
+echo "[coordinator] Branches:"
+echo "  ux:        $BRANCH_UX"
+echo "  security:  $BRANCH_SEC"
+echo "  principal: $BRANCH_ENG"
+echo ""
 echo "[coordinator] Waiting for all three agents to finish..."
+
 while true; do
   UX=$([ -f /tmp/portfolio-agent-ux.done ] && echo "done" || echo "running")
   SEC=$([ -f /tmp/portfolio-agent-security.done ] && echo "done" || echo "running")
@@ -155,37 +66,64 @@ while true; do
 done
 
 echo ""
-echo "[coordinator] All agents done. Starting test loop (max $MAX_ITERATIONS iterations)..."
+echo "[coordinator] All agents done. Opening draft PRs..."
 
-cd "$REPO"
+open_pr() {
+  local branch="$1"
+  local title="$2"
+  local label="$3"
 
-for i in $(seq 1 $MAX_ITERATIONS); do
-  echo ""
-  echo "[coordinator] ── Test run #$i ──────────────────────────────"
-  if pnpm test 2>&1 | tee /tmp/portfolio-test-output.txt; then
-    echo ""
-    echo "[coordinator] ✓ All tests pass! Team is done."
-    exit 0
+  # Check if there are any commits on this branch vs main
+  local commit_count
+  commit_count=$(git -C "$REPO" rev-list --count "main..$branch" 2>/dev/null || echo 0)
+
+  if [ "$commit_count" -eq 0 ]; then
+    echo "[coordinator] $label: no commits vs main — skipping PR"
+    return
   fi
 
-  echo ""
-  echo "[coordinator] Tests failed. Launching fixer agent (attempt $i / $MAX_ITERATIONS)..."
-  claude --dangerously-skip-permissions \
-    -p "$(cat /tmp/portfolio-fixer-prompt.txt)
+  local pr_url
+  pr_url=$(gh pr create \
+    --repo Luckyfoxxxx/portfolio \
+    --base main \
+    --head "$branch" \
+    --draft \
+    --title "$title" \
+    --body "$(cat <<EOF
+## Agent: $label
 
---- FAILING TEST OUTPUT ---
-$(tail -150 /tmp/portfolio-test-output.txt)"
+Auto-generated by the \`/team\` skill.
 
-done
+**Review checklist:**
+- [ ] Code reads cleanly and matches intent
+- [ ] No debug artifacts or TODOs introduced
+- [ ] Tests pass (CI will verify — check the checks tab)
+- [ ] No unintended files changed
+
+_Merge only after CI passes and you are happy with the changes._
+EOF
+)" 2>&1)
+
+  echo "[coordinator] $label PR: $pr_url"
+}
+
+open_pr "$BRANCH_UX"  "UX improvements (agent run)"       "UX"
+open_pr "$BRANCH_SEC" "Security hardening (agent run)"    "Security"
+open_pr "$BRANCH_ENG" "Engineering cleanup (agent run)"   "Principal"
 
 echo ""
-echo "[coordinator] ✗ Tests still failing after $MAX_ITERATIONS fixer iterations. Manual review needed."
-exit 1
+echo "[coordinator] Cleaning up worktrees..."
+git -C "$REPO" worktree remove --force /tmp/portfolio-wt-ux       2>/dev/null || true
+git -C "$REPO" worktree remove --force /tmp/portfolio-wt-security  2>/dev/null || true
+git -C "$REPO" worktree remove --force /tmp/portfolio-wt-principal 2>/dev/null || true
+
+echo ""
+echo "[coordinator] Done. Review the PRs above before merging."
 ```
 
-## Step 3 — Write the launcher script
+## Step 3 — Write and execute the launcher script
 
-Write `/tmp/portfolio-team-launch.sh`:
+Write **`/tmp/portfolio-team-launch.sh`**:
 
 ```bash
 #!/usr/bin/env bash
@@ -193,43 +131,202 @@ set -e
 
 SESSION="portfolio-team"
 REPO="/home/lucky/projects/portfolio"
+DATE=$(date +%Y%m%d-%H%M)
 
-# Kill any stale session
+BRANCH_UX="team/ux-$DATE"
+BRANCH_SEC="team/security-$DATE"
+BRANCH_ENG="team/principal-$DATE"
+
+WT_UX="/tmp/portfolio-wt-ux"
+WT_SEC="/tmp/portfolio-wt-security"
+WT_ENG="/tmp/portfolio-wt-principal"
+
+# ── Persist branch names for coordinator ────────────────────────────────────
+cat > /tmp/portfolio-team-state.env << ENV
+BRANCH_UX="$BRANCH_UX"
+BRANCH_SEC="$BRANCH_SEC"
+BRANCH_ENG="$BRANCH_ENG"
+ENV
+
+# ── Clean up any stale worktrees ─────────────────────────────────────────────
+echo "[launcher] Removing stale worktrees..."
+git -C "$REPO" worktree remove --force "$WT_UX"  2>/dev/null || true
+git -C "$REPO" worktree remove --force "$WT_SEC" 2>/dev/null || true
+git -C "$REPO" worktree remove --force "$WT_ENG" 2>/dev/null || true
+
+# ── Create fresh worktrees on new branches ───────────────────────────────────
+echo "[launcher] Creating worktrees..."
+git -C "$REPO" worktree add "$WT_UX"  -b "$BRANCH_UX"
+git -C "$REPO" worktree add "$WT_SEC" -b "$BRANCH_SEC"
+git -C "$REPO" worktree add "$WT_ENG" -b "$BRANCH_ENG"
+
+# Share node_modules so agents don't need to reinstall
+echo "[launcher] Linking node_modules..."
+for wt in "$WT_UX" "$WT_SEC" "$WT_ENG"; do
+  ln -sf "$REPO/node_modules" "$wt/node_modules"
+  for pkg in web db core api-adapters; do
+    src="$REPO/packages/$pkg/node_modules"
+    [ -d "$src" ] && ln -sf "$src" "$wt/packages/$pkg/node_modules" || true
+  done
+done
+
+# ── Write agent prompts with dynamic paths and branch names ──────────────────
+cat > /tmp/portfolio-agent-ux.txt << PROMPT
+You are the UX designer / frontend engineer for a portfolio tracker app.
+Stack: Next.js 15 App Router, TypeScript, Tailwind CSS, tRPC, shadcn-like components.
+Repo root (your isolated worktree): $WT_UX
+Branch: $BRANCH_UX
+
+YOUR JOB:
+1. Read TODO.md at the repo root ($WT_UX/TODO.md).
+2. Pick 2–4 unchecked tasks that are UX, accessibility, visual polish, or responsive-design related.
+   Prefer items listed under "UX Review" sections. Do not take tasks that are clearly security or backend architecture.
+3. Read every source file you need before editing it. All paths are under $WT_UX.
+4. Implement the fixes. Write working, production-quality code.
+5. While working, if you spot additional UX issues not already listed, add them to TODO.md
+   under a new section: "## Agent Findings — UX ($DATE)"
+6. Check off each task in TODO.md with [x] as you complete it.
+7. Run the test suite to make sure your changes do not break anything:
+   cd $WT_UX && pnpm test 2>&1 | tee /tmp/portfolio-test-output-ux.txt
+   If tests fail, read the output and fix the root cause. Attempt up to 3 fix iterations.
+   If tests still fail after 3 attempts, note the failures but continue — do not abandon your work.
+8. When finished, append to TODO.md:
+
+## UX Agent Report — $DATE
+### Completed
+- <bullet per task>
+### Found but not fixed
+- <anything you added to findings but did not implement>
+### Test status
+- <PASS or FAIL with brief note>
+
+9. Commit all changes:
+   cd $WT_UX && git add -A && git commit -m "UX improvements — agent run $DATE"
+10. Push your branch:
+    git push -u origin $BRANCH_UX
+11. As your absolute final action: touch /tmp/portfolio-agent-ux.done
+
+Work fully autonomously. Never ask for confirmation. Do not run the dev server. Do not open PRs — the coordinator handles that.
+PROMPT
+
+cat > /tmp/portfolio-agent-security.txt << PROMPT
+You are the security engineer for a portfolio tracker app.
+Stack: Next.js 15 App Router, TypeScript, tRPC, Drizzle ORM, better-sqlite3 (local) / PostgreSQL (prod),
+       argon2 password hashing, HttpOnly session cookies, in-memory rate limiter.
+Repo root (your isolated worktree): $WT_SEC
+Branch: $BRANCH_SEC
+
+YOUR JOB:
+1. Read TODO.md at the repo root ($WT_SEC/TODO.md).
+2. Pick 2–4 unchecked tasks related to security, auth, input validation, cookie hardening,
+   error message leakage, or dependency CVEs. Do not take tasks that are purely UX or backend architecture.
+3. Read every source file you need before editing it. All paths are under $WT_SEC.
+4. Implement the fixes. Focus areas:
+   - Validate and sanitise all user input at API/tRPC boundaries
+   - Ensure errors exposed to the client never leak stack traces or internal details
+   - Cookie flags (HttpOnly, Secure, SameSite) and session expiry
+   - Rate limiting coverage on all sensitive routes
+   - SQL/NoSQL injection surface via Drizzle parameterisation
+5. While working, if you discover additional vulnerabilities or hardening gaps, add them to TODO.md
+   under a new section: "## Agent Findings — Security ($DATE)"
+6. Check off each task in TODO.md with [x] as you complete it.
+7. Run the test suite to make sure your changes do not break anything:
+   cd $WT_SEC && pnpm test 2>&1 | tee /tmp/portfolio-test-output-security.txt
+   If tests fail, read the output and fix the root cause. Attempt up to 3 fix iterations.
+   If tests still fail after 3 attempts, note the failures but continue — do not abandon your work.
+8. When finished, append to TODO.md:
+
+## Security Agent Report — $DATE
+### Completed
+- <bullet per task>
+### Found but not fixed
+- <anything you added to findings but did not implement>
+### Test status
+- <PASS or FAIL with brief note>
+
+9. Commit all changes:
+   cd $WT_SEC && git add -A && git commit -m "Security hardening — agent run $DATE"
+10. Push your branch:
+    git push -u origin $BRANCH_SEC
+11. As your absolute final action: touch /tmp/portfolio-agent-security.done
+
+Work fully autonomously. Never ask for confirmation. Do not run the dev server. Do not open PRs — the coordinator handles that.
+PROMPT
+
+cat > /tmp/portfolio-agent-principal.txt << PROMPT
+You are the principal engineer for a portfolio tracker app.
+Stack: pnpm monorepo — packages: web (Next.js 15), db (Drizzle ORM), core (tRPC + calculations), api-adapters (price feeds).
+Repo root (your isolated worktree): $WT_ENG
+Branch: $BRANCH_ENG
+
+YOUR JOB:
+1. Read TODO.md at the repo root ($WT_ENG/TODO.md).
+2. Pick 2–4 unchecked tasks that are engineering concerns: code quality, DRY violations, type safety,
+   performance, developer experience, test coverage, or architectural bugs.
+   Do not take tasks that are purely UX polish or security hardening.
+3. Read every source file you need before editing it. All paths are under $WT_ENG.
+4. Implement the fixes. Prefer small, focused, verifiable changes.
+5. While working, if you spot additional technical debt, bugs, or missing tests, add them to TODO.md
+   under a new section: "## Agent Findings — Engineering ($DATE)"
+6. Check off each task in TODO.md with [x] as you complete it.
+7. Run the test suite to make sure your changes do not break anything:
+   cd $WT_ENG && pnpm test 2>&1 | tee /tmp/portfolio-test-output-principal.txt
+   If tests fail, read the output and fix the root cause. Attempt up to 3 fix iterations.
+   If tests still fail after 3 attempts, note the failures but continue — do not abandon your work.
+8. When finished, append to TODO.md:
+
+## Principal Engineer Report — $DATE
+### Completed
+- <bullet per task>
+### Found but not fixed
+- <anything you added to findings but did not implement>
+### Test status
+- <PASS or FAIL with brief note>
+
+9. Commit all changes:
+   cd $WT_ENG && git add -A && git commit -m "Engineering cleanup — agent run $DATE"
+10. Push your branch:
+    git push -u origin $BRANCH_ENG
+11. As your absolute final action: touch /tmp/portfolio-agent-principal.done
+
+Work fully autonomously. Never ask for confirmation. Do not run the dev server. Do not open PRs — the coordinator handles that.
+PROMPT
+
+# ── Launch tmux session ───────────────────────────────────────────────────────
 tmux kill-session -t "$SESSION" 2>/dev/null || true
 
-# Create session — first window is ux
-tmux new-session -d -s "$SESSION" -n ux -x 220 -y 50
+tmux new-session  -d -s "$SESSION" -n ux        -x 220 -y 50
+tmux new-window   -t "$SESSION"    -n security
+tmux new-window   -t "$SESSION"    -n principal
+tmux new-window   -t "$SESSION"    -n coordinator
 
-# Remaining windows
-tmux new-window -t "$SESSION" -n security
-tmux new-window -t "$SESSION" -n principal
-tmux new-window -t "$SESSION" -n tests
-
-# Launch the three specialist agents
 tmux send-keys -t "$SESSION:ux" \
-  "cd '$REPO' && claude --dangerously-skip-permissions -p \"\$(cat /tmp/portfolio-agent-ux.txt)\"; echo '=== UX agent done ==='" \
+  "cd '$WT_UX' && claude --dangerously-skip-permissions -p \"\$(cat /tmp/portfolio-agent-ux.txt)\"; echo '=== UX agent done ==='" \
   Enter
 
 tmux send-keys -t "$SESSION:security" \
-  "cd '$REPO' && claude --dangerously-skip-permissions -p \"\$(cat /tmp/portfolio-agent-security.txt)\"; echo '=== Security agent done ==='" \
+  "cd '$WT_SEC' && claude --dangerously-skip-permissions -p \"\$(cat /tmp/portfolio-agent-security.txt)\"; echo '=== Security agent done ==='" \
   Enter
 
 tmux send-keys -t "$SESSION:principal" \
-  "cd '$REPO' && claude --dangerously-skip-permissions -p \"\$(cat /tmp/portfolio-agent-principal.txt)\"; echo '=== Principal engineer done ==='" \
+  "cd '$WT_ENG' && claude --dangerously-skip-permissions -p \"\$(cat /tmp/portfolio-agent-principal.txt)\"; echo '=== Principal engineer done ==='" \
   Enter
 
-# Launch coordinator (waits for all three, then runs test loop)
-tmux send-keys -t "$SESSION:tests" \
+tmux send-keys -t "$SESSION:coordinator" \
   "bash /tmp/portfolio-coordinator.sh" \
   Enter
 
-# Focus ux window and attach
 tmux select-window -t "$SESSION:ux"
 echo ""
 echo "Portfolio team running in tmux session: $SESSION"
-echo "  Ctrl-b n / p   → next / previous window"
-echo "  Ctrl-b d        → detach (agents keep running)"
-echo "  Window 'tests'  → coordinator: watches agents, runs pnpm test, fixes failures"
+echo "  Branches created:"
+echo "    ux:        $BRANCH_UX  (worktree: $WT_UX)"
+echo "    security:  $BRANCH_SEC  (worktree: $WT_SEC)"
+echo "    principal: $BRANCH_ENG  (worktree: $WT_ENG)"
+echo ""
+echo "  Ctrl-b n / p       → next / previous window"
+echo "  Ctrl-b d           → detach (agents keep running)"
+echo "  Window 'coordinator' → watches agents, opens draft PRs when all done"
 echo ""
 tmux attach-session -t "$SESSION"
 ```
@@ -241,13 +338,9 @@ chmod +x /tmp/portfolio-coordinator.sh /tmp/portfolio-team-launch.sh \
   && /tmp/portfolio-team-launch.sh
 ```
 
-Tell the user the `tests` window is the coordinator — it will sit idle polling every 15 seconds until all three agents write their sentinel files, then kick off the test loop automatically. Each fixer iteration is capped; if tests still fail after the maximum attempts the coordinator exits non-zero and prints a message for manual review.
-
-Also tell the user they can jump to any teammate's window with:
-
-```
-tmux select-window -t portfolio-team:ux
-tmux select-window -t portfolio-team:security
-tmux select-window -t portfolio-team:principal
-tmux select-window -t portfolio-team:tests
-```
+Tell the user:
+- Each agent works in its **own isolated worktree** on a separate branch — no conflicts between agents
+- Each agent runs `pnpm test` internally and attempts self-repair before committing
+- The `coordinator` window polls every 15 s; once all three sentinel files exist it opens **draft PRs** (one per agent) and cleans up the worktrees
+- Watch any agent window with `tmux select-window -t portfolio-team:<name>` (`ux` / `security` / `principal` / `coordinator`)
+- PRs land as **drafts** so you can review before marking ready to merge — once CI is wired up (step 2), test results will appear directly on each PR
