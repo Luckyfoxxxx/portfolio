@@ -37,7 +37,7 @@ Write **`/tmp/portfolio-coordinator.sh`**:
 
 ```bash
 #!/usr/bin/env bash
-REPO="/home/lucky/projects/portfolio"
+REPO="$(git rev-parse --show-toplevel)"
 
 # Load branch names written by the launcher
 source /tmp/portfolio-team-state.env
@@ -130,7 +130,7 @@ Write **`/tmp/portfolio-team-launch.sh`**:
 set -e
 
 SESSION="portfolio-team"
-REPO="/home/lucky/projects/portfolio"
+REPO="$(git rev-parse --show-toplevel)"
 DATE=$(date +%Y%m%d-%H%M)
 
 BRANCH_UX="team/ux-$DATE"
