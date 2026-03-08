@@ -10,8 +10,8 @@ import { fileURLToPath } from "url";
 try {
   const envFile = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), "../../../.env.local"), "utf8");
   for (const line of envFile.split("\n")) {
-    const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
-    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+    const [, key, val] = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/) ?? [];
+    if (key !== undefined && process.env[key] === undefined) process.env[key] = (val ?? "").replace(/^["']|["']$/g, "");
   }
 } catch { /* .env.local absent — env vars must be set in the shell */ }
 import * as schema from "../src/schema/index.js";
