@@ -15,6 +15,13 @@
       "when": 1773173007891,
       "tag": "0001_low_roland_deschain",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773174272269,
+      "tag": "0002_chief_rumiko_fujikawa",
+      "breakpoints": true
     }
   ]
 }
