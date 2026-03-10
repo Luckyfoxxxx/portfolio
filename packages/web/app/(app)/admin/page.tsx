@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getSession } from "../../../lib/auth/session";
 import { db } from "../../../lib/db/index";
 import { cronRuns } from "@portfolio/db";
@@ -40,7 +40,7 @@ function StatusBadge({ status }: { status: "success" | "partial" | "failed" }) {
 
 export default async function AdminPage() {
   const session = await getSession();
-  if (!session?.isAdmin) redirect("/dashboard");
+  if (!session?.isAdmin) notFound();
 
   const runs = await db.select().from(cronRuns).orderBy(desc(cronRuns.startedAt)).limit(20);
 
