@@ -68,7 +68,7 @@ async function refreshPrices() {
             .values({
               symbol,
               headline: article.headline.slice(0, 512),
-              url: article.url,
+              url: article.url.slice(0, 2048),
               source: article.source ? article.source.slice(0, 128) : null,
               publishedAt: article.publishedAt,
             })
@@ -95,7 +95,7 @@ async function refreshPrices() {
         finishedAt: new Date(),
         status: "failed",
         symbolsRefreshed: 0,
-        error: err instanceof Error ? err.message : String(err),
+        error: (err instanceof Error ? err.message : String(err)).slice(0, 512),
       })
       .where(eq(cronRuns.id, runId));
 
