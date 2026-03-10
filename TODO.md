@@ -103,6 +103,18 @@
 - **`text-gray-400` on `bg-gray-900` for small quantity label** — improved from the original `text-gray-600` but small text at this contrast ratio may still fall below WCAG AA (4.5:1); verify with a tool such as the WebAIM contrast checker.
 - **Wrong error message on login fetch failure** — the `catch` block emits "Network error. Please try again." even for non-network errors that somehow reach the catch boundary; the server-error path already extracts the real message via `res.json()`, so this is a cosmetic/DX issue but worth a code comment.
 
+## Price Data & Cron Monitoring
+
+- [x] **DB migration: `is_admin` + `cron_runs` table** — Add `is_admin INTEGER NOT NULL DEFAULT 0` to `users`; create `cron_runs` table (id, started_at, finished_at, status, symbols_attempted, symbols_refreshed, error, created_at). Run `drizzle-kit generate`. Update migration smoke tests to include the new table and default-value assertions.
+- [x] **Fix cron startup via `instrumentation.ts`** — Create `packages/web/instrumentation.ts` that calls `startPriceCron()` inside a `NEXT_RUNTIME === "nodejs"` guard. The cron is currently defined but never started.
+- [x] **Switch cron to Oslo Børs market hours** — Replace US hours (14:30–21:00 UTC) with Oslo Børs hours (08:00–16:30 UTC). Export `isMarketHours()` so the admin page can reuse it.
+- [x] **Track cron runs in DB** — Update `refreshPrices()` to insert a `cron_runs` row at start, then update it to `success`/`partial`/`failed` + `finishedAt` on completion or error.
+- [x] **Admin role in auth** — Add `isAdmin: boolean` to `getSession()` return value (`user.isAdmin === 1`). Propagate into tRPC context. Add `adminProcedure` (chains off `protectedProcedure`, throws `FORBIDDEN` if `!ctx.isAdmin`).
+- [x] **adminRouter + tRPC wiring** — Create `packages/core/src/router/admin.ts` with a `cronRuns` query (last 20 runs). Mount as `admin: adminRouter` in `appRouter`.
+- [x] **Admin dashboard page `/admin`** — Server component (`force-dynamic`). Redirect to `/dashboard` if not admin. Show: alert banner (last run failed or stale during market hours), status card (last run time/status/symbols/duration), recent runs table (Started At | Duration | Status | Symbols | Error).
+- [x] **NavBar + layout: Admin link** — Add `isAdmin: boolean` prop to `NavBar`; render an "Admin" nav link conditionally. Pass from `app/(app)/layout.tsx`.
+- [x] **Seed script: `SEED_ADMIN` flag** — Read `SEED_ADMIN=true` env var in `packages/db/scripts/seed-dev.ts` to mark the seeded user as admin.
+
 ## UX Agent Report — 2026-03-08
 ### Completed
 - **Added skip-to-main-content link** — `app/(app)/layout.tsx`: the `.skip-to-main` CSS was already in `globals.css` and `<main>` had `id="main-content"`, but the `<a>` element was missing; added it above `<NavBar>`.
@@ -116,3 +128,35 @@
 - `text-gray-400` small-text contrast — needs contrast tool verification before acting.
 - Sign out button touch target still ~38px — needs `py-3.5` or a larger hit area.
 - Login wrong-error-on-catch — cosmetic/DX issue; server error path is already correct.
+
+## Security Agent Report — 2026-03-10
+### Completed
+- **`isAdmin` exposed from `getSession()`** — `packages/web/lib/auth/session.ts`: `getSession()` now returns `isAdmin: boolean` by converting the DB integer (`user.isAdmin === 1`); return type updated accordingly.
+- **`isAdmin` propagated into tRPC context** — `packages/core/src/router/context.ts`: added `isAdmin: boolean` to `Context`; `packages/web/lib/trpc/server.ts`: `createContext()` now populates `isAdmin: session?.isAdmin ?? false`.
+- **`adminProcedure` added** — `packages/core/src/router/trpc.ts`: new middleware chain extending `protectedProcedure` that throws `FORBIDDEN` if `ctx.isAdmin` is false; ready for use by `adminRouter`.
+### Found but not fixed
+- `adminRouter` and `/admin` dashboard page not yet implemented (assigned to other agents).
+- Seed script `SEED_ADMIN` flag not yet implemented (assigned to other agents).
+
+## UX Agent Report — 2026-03-10
+### Completed
+- **NavBar `isAdmin` prop** — Added `isAdmin?: boolean` to `NavBarProps`; "Admin" link to `/admin` is appended to `navLinks` array when `isAdmin` is true, using the same active/inactive link style as existing nav items.
+- **Layout wires `isAdmin`** — `app/(app)/layout.tsx` passes `isAdmin={session.isAdmin}` (boolean from the updated `getSession()`) to `<NavBar>`.
+- **Admin page created** — `app/(app)/admin/page.tsx`: server component with `force-dynamic`; redirects non-admins to `/dashboard`; queries last 20 `cron_runs` rows; shows alert banner (red for never-run/failed, yellow for stale during market hours), a status card (started at, status badge, symbols refreshed/attempted, duration), and a full runs table with all required columns.
+- **Exported `isMarketHours()`** — `lib/price-cron/index.ts`: made the function `export` so the admin page can import and reuse it for stale-run detection.
+
+### Found but not fixed
+- The `Switch cron to Oslo Børs market hours` task is still pending — `isMarketHours()` still uses US hours (14:30–21:00 UTC); the admin page imports and uses it as-is so the stale detection will reflect whatever hours the cron task updates it to.
+- `adminRouter + tRPC wiring` not implemented (out of UX scope; admin page queries DB directly as a server component).
+
+## Principal Engineer Report — 2026-03-10
+### Completed
+- **DB migration: `is_admin` + `cron_runs` table** — Schema files were already in place (`sessions.ts` with `isAdmin`, `cron-runs.ts`, exported from `schema/index.ts`). Migration SQL `0001_low_roland_deschain.sql` was already generated. Updated `migrations.test.ts`: added `cron_runs` to `EXPECTED_TABLES` (now 7 tables), added `users defaults is_admin to 0` test, added `cron_runs round-trip` test. All 11 DB tests pass.
+- **Fix cron startup via `instrumentation.ts`** — Created `packages/web/instrumentation.ts` with `NEXT_RUNTIME === "nodejs"` guard calling `startPriceCron()`.
+- **Switch cron to Oslo Børs market hours** — Updated `isMarketHours()` in `lib/price-cron/index.ts` to use 08:00–16:30 UTC. `export` keyword was already present (added by UX agent).
+- **Track cron runs in DB** — Updated `refreshPrices()` to insert a pessimistic `cron_runs` row (status: "failed") at start using `.returning()` to capture the id, then update to `success`/`partial` on completion or `failed` with error message on catch; re-throws the error after recording.
+- **`adminProcedure` in trpc.ts** — Already implemented by security agent. Confirmed present.
+- **adminRouter + tRPC wiring** — Created `packages/core/src/router/admin.ts` with `cronRuns` query (last 20 rows ordered by `startedAt` desc). Mounted as `admin: adminRouter` in `appRouter`.
+- **Seed script: `SEED_ADMIN` flag** — Added `isAdmin` derived from `SEED_ADMIN=true` env var when inserting the dev user.
+### Found but not fixed
+- None — all assigned tasks completed. `tsc --noEmit` passes for both `@portfolio/core` and `@portfolio/web`. All 11 DB migration tests pass.

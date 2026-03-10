@@ -33,9 +33,10 @@ describe("migrations", () => {
     "transactions",
     "price_snapshots",
     "news_items",
+    "cron_runs",
   ];
 
-  it("creates all 6 expected tables", () => {
+  it("creates all 7 expected tables", () => {
     const rows = sqlite
       .prepare("SELECT name FROM sqlite_master WHERE type='table'")
       .all() as { name: string }[];
@@ -53,6 +54,13 @@ describe("migrations", () => {
         )
         .run("user-1", "alice", "$argon2id$dummy", Date.now());
     }).not.toThrow();
+  });
+
+  it("users table defaults is_admin to 0", () => {
+    const user = sqlite
+      .prepare("SELECT is_admin FROM users WHERE id = 'user-1'")
+      .get() as { is_admin: number };
+    expect(user.is_admin).toBe(0);
   });
 
   it("sessions table accepts a valid row (fk users)", () => {
@@ -111,5 +119,26 @@ describe("migrations", () => {
         )
         .run("AAPL", "Apple reports record earnings", "https://example.com", now, now);
     }).not.toThrow();
+  });
+
+  it("cron_runs table accepts a valid row", () => {
+    const now = Date.now();
+    expect(() => {
+      sqlite
+        .prepare(
+          "INSERT INTO cron_runs (started_at, finished_at, status, symbols_attempted, symbols_refreshed, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
+        )
+        .run(now, now + 5000, "success", 7, 7, null, now);
+    }).not.toThrow();
+  });
+
+  it("cron_runs round-trip: inserted row can be retrieved", () => {
+    const row = sqlite
+      .prepare("SELECT * FROM cron_runs WHERE status = 'success'")
+      .get() as { symbols_attempted: number; symbols_refreshed: number; status: string };
+    expect(row).toBeDefined();
+    expect(row.symbols_attempted).toBe(7);
+    expect(row.symbols_refreshed).toBe(7);
+    expect(row.status).toBe("success");
   });
 });

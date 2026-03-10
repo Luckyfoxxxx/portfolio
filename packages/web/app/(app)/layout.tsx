@@ -15,7 +15,7 @@ export default async function AppLayout({
       <a href="#main-content" className="skip-to-main">
         Skip to main content
       </a>
-      <NavBar username={session.user.username} />
+      <NavBar username={session.user.username} isAdmin={session.isAdmin} />
       <main id="main-content" className="flex-1 p-4 md:p-6">{children}</main>
     </div>
   );
