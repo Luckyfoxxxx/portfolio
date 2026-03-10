@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 
 interface NavBarProps {
   username: string;
+  isAdmin?: boolean;
 }
 
-export function NavBar({ username }: NavBarProps) {
+export function NavBar({ username, isAdmin }: NavBarProps) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -20,6 +21,7 @@ export function NavBar({ username }: NavBarProps) {
   const navLinks = [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/transactions", label: "Transactions" },
+    ...(isAdmin ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
   return (

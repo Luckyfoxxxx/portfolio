@@ -6,6 +6,7 @@ export async function createContext() {
   return {
     db,
     userId: session?.user.id ?? null,
+    isAdmin: session?.isAdmin ?? false,
   };
 }
 

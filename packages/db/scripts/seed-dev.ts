@@ -260,10 +260,12 @@ async function main() {
     process.exit(1);
   }
   const passwordHash = await hash(seedPassword);
+  const isAdmin = process.env["SEED_ADMIN"] === "true" ? 1 : 0;
   await db.insert(schema.users).values({
     id: "dev-user-001",
     username: seedUsername,
     passwordHash,
+    isAdmin,
   });
   console.log(`User created: ${seedUsername}`);
 

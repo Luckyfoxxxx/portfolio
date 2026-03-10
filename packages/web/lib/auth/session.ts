@@ -78,9 +78,12 @@ export async function clearSessionCookie() {
 export async function getSession(): Promise<{
   user: User;
   session: Session;
+  isAdmin: boolean;
 } | null> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get(SESSION_COOKIE)?.value;
   if (!sessionId) return null;
-  return validateSession(sessionId);
+  const result = await validateSession(sessionId);
+  if (!result) return null;
+  return { ...result, isAdmin: result.user.isAdmin === 1 };
 }

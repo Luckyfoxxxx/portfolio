@@ -24,3 +24,8 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
   }
   return next({ ctx: { ...ctx, userId: ctx.userId } });
 });
+
+export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
+  if (!ctx.isAdmin) throw new TRPCError({ code: "FORBIDDEN" });
+  return next({ ctx });
+});
