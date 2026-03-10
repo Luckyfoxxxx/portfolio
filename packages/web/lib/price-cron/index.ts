@@ -67,9 +67,9 @@ async function refreshPrices() {
             .insert(newsItems)
             .values({
               symbol,
-              headline: article.headline,
+              headline: article.headline.slice(0, 512),
               url: article.url,
-              source: article.source ?? null,
+              source: article.source ? article.source.slice(0, 128) : null,
               publishedAt: article.publishedAt,
             })
             .onConflictDoNothing();
