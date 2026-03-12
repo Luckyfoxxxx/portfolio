@@ -8,6 +8,27 @@
       "when": 1772834351315,
       "tag": "0000_curious_deadpool",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1773173007891,
+      "tag": "0001_low_roland_deschain",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1773174272269,
+      "tag": "0002_chief_rumiko_fujikawa",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1773176180689,
+      "tag": "0003_large_longshot",
+      "breakpoints": true
     }
   ]
 }

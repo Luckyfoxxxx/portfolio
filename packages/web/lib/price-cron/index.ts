@@ -1,5 +1,6 @@
 import { YahooFinanceAdapter, type NewsArticle } from "@portfolio/api-adapters";
-import { priceSnapshots, newsItems, holdings } from "@portfolio/db";
+import { priceSnapshots, newsItems, holdings, cronRuns } from "@portfolio/db";
+import { eq } from "drizzle-orm";
 import { db } from "../db/index";
 
 const adapter = new YahooFinanceAdapter();
@@ -7,9 +8,9 @@ const adapter = new YahooFinanceAdapter();
 // Refresh interval: 5 minutes during market hours
 const INTERVAL_MS = 5 * 60 * 1000;
 
-// Market hours: roughly 9:30–16:00 ET, Mon–Fri
-// We use UTC: ET = UTC-5 (EST) or UTC-4 (EDT)
-function isMarketHours(): boolean {
+// Market hours: Oslo Børs (CET UTC+1 / CEST UTC+2)
+// 09:00 CET = 08:00 UTC, 17:30 CET = 16:30 UTC
+export function isMarketHours(): boolean {
   const now = new Date();
   const day = now.getUTCDay(); // 0=Sun, 6=Sat
   if (day === 0 || day === 6) return false;
@@ -18,8 +19,8 @@ function isMarketHours(): boolean {
   const minutes = now.getUTCMinutes();
   const totalMinutes = hours * 60 + minutes;
 
-  // 14:30–21:00 UTC covers US market hours (accounting for DST roughly)
-  return totalMinutes >= 14 * 60 + 30 && totalMinutes <= 21 * 60;
+  // 08:00–16:30 UTC covers Oslo Børs hours (CET UTC+1 and CEST UTC+2)
+  return totalMinutes >= 8 * 60 && totalMinutes <= 16 * 60 + 30;
 }
 
 async function refreshPrices() {
@@ -27,43 +28,79 @@ async function refreshPrices() {
   if (allHoldings.length === 0) return;
 
   const symbols = [...new Set(allHoldings.map((h) => h.symbol))];
+  const startedAt = new Date();
 
-  const quotes = await adapter.getQuotes(symbols);
-  const now = new Date();
+  // Insert cron run row pessimistically (status: "failed")
+  const [run] = await db
+    .insert(cronRuns)
+    .values({
+      startedAt,
+      status: "failed",
+      symbolsAttempted: symbols.length,
+      symbolsRefreshed: 0,
+    })
+    .returning();
 
-  for (const quote of quotes) {
-    await db.insert(priceSnapshots).values({
-      symbol: quote.symbol,
-      price: quote.price,
-      currency: quote.currency,
-      source: quote.source,
-      timestamp: now,
-    });
-  }
+  const runId = run!.id;
 
-  // Refresh news for each symbol (less frequently — once per cycle)
-  for (const symbol of symbols) {
-    try {
-      const articles = (await adapter.getNews?.(symbol, 5) ?? [])
-        .filter((a: NewsArticle) => a.url.startsWith("https://") || a.url.startsWith("http://"));
-      for (const article of articles) {
-        await db
-          .insert(newsItems)
-          .values({
-            symbol,
-            headline: article.headline,
-            url: article.url,
-            source: article.source ?? null,
-            publishedAt: article.publishedAt,
-          })
-          .onConflictDoNothing();
-      }
-    } catch {
-      // News is best-effort
+  try {
+    const quotes = await adapter.getQuotes(symbols);
+    const now = new Date();
+
+    for (const quote of quotes) {
+      await db.insert(priceSnapshots).values({
+        symbol: quote.symbol,
+        price: quote.price,
+        currency: quote.currency,
+        source: quote.source,
+        timestamp: now,
+      });
     }
-  }
 
-  console.log(`[price-cron] Refreshed ${quotes.length}/${symbols.length} symbols`);
+    // Refresh news for each symbol (less frequently — once per cycle)
+    for (const symbol of symbols) {
+      try {
+        const articles = (await adapter.getNews?.(symbol, 5) ?? [])
+          .filter((a: NewsArticle) => a.url.startsWith("https://") || a.url.startsWith("http://"));
+        for (const article of articles) {
+          await db
+            .insert(newsItems)
+            .values({
+              symbol,
+              headline: article.headline.slice(0, 512),
+              url: article.url.slice(0, 2048),
+              source: article.source ? article.source.slice(0, 128) : null,
+              publishedAt: article.publishedAt,
+            })
+            .onConflictDoNothing();
+        }
+      } catch {
+        // News is best-effort
+      }
+    }
+
+    const symbolsRefreshed = quotes.length;
+    const status = symbolsRefreshed === symbols.length ? "success" : "partial";
+
+    await db
+      .update(cronRuns)
+      .set({ finishedAt: new Date(), status, symbolsRefreshed })
+      .where(eq(cronRuns.id, runId));
+
+    console.log(`[price-cron] Refreshed ${symbolsRefreshed}/${symbols.length} symbols`);
+  } catch (err) {
+    await db
+      .update(cronRuns)
+      .set({
+        finishedAt: new Date(),
+        status: "failed",
+        symbolsRefreshed: 0,
+        error: (err instanceof Error ? err.message : String(err)).slice(0, 512),
+      })
+      .where(eq(cronRuns.id, runId));
+
+    throw err;
+  }
 }
 
 let timer: ReturnType<typeof setInterval> | null = null;
