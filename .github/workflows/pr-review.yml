@@ -19,7 +19,7 @@ jobs:
       - name: Run Claude Code Review
         uses: anthropics/claude-code-action@beta
         with:
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_KEY }}
           direct_prompt: |
             Review this pull request for:
             1. Correctness of financial calculations — check for off-by-one errors, rounding issues, currency handling
