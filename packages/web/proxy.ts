@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE } from "./lib/auth/constants";
 
-// Middleware runs on Edge — no DB access here.
+// Proxy runs on Edge — no DB access here.
 // We only check cookie presence; actual validation happens in each route.
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const sessionId = request.cookies.get(SESSION_COOKIE)?.value;
 
