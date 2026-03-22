@@ -160,3 +160,20 @@
 - **Seed script: `SEED_ADMIN` flag** — Added `isAdmin` derived from `SEED_ADMIN=true` env var when inserting the dev user.
 ### Found but not fixed
 - None — all assigned tasks completed. `tsc --noEmit` passes for both `@portfolio/core` and `@portfolio/web`. All 11 DB migration tests pass.
+
+## Agent Findings — Engineering (20260322-1015)
+
+- **`better-sqlite3` binary compiled for Node 22, test environment runs Node 20** — the shared pnpm store binary has `NODE_MODULE_VERSION 127` (Node 22) but CI/local uses Node 20 (`NODE_MODULE_VERSION 115`); `@portfolio/db` tests have been skipping since the Node 22 upgrade; fix by running `pnpm rebuild better-sqlite3` in the Node 20 environment or locking the environment to Node 22 as required by the engine constraint.
+- **`edit-holding-modal.tsx` was sending `symbol` in the `updateHolding` mutation** — the field was accepted by the old loose schema and silently ignored server-side, but cluttered the wire payload and was misleading; cleaned up as part of the symbol-immutability fix.
+- **`createCallerFactory` was not exported from `packages/core/src/router/trpc.ts`** — tests and any future server-side caller code had no way to create a direct caller without bypassing the configured `errorFormatter`; fixed by exporting it alongside `router` and `publicProcedure`.
+
+## Principal Engineer Report — 20260322-1015
+### Completed
+- **`updateHoldingSchema` no longer allows mutating `symbol`** — removed `symbol` from `updateHoldingSchema` in `packages/core/src/schemas/index.ts` with a comment explaining why; also removed the stale `symbol: holding.symbol` payload from `edit-holding-modal.tsx`. Changing symbol would have silently orphaned all `priceSnapshots` and `newsItems` keyed on the old symbol.
+- **`addTransactionSchema` no longer accepts `currency` from the client** — removed the client-supplied `currency` field; the `addTransaction` router handler now derives `currency` from the holding record server-side, consistent with the earlier `symbol` fix. This closes the class of mismatch bugs where a client could record a transaction in a different currency than its parent holding.
+- **`delete` and `deleteTransaction` now return `NOT_FOUND` for missing records** — previously both procedures silently succeeded on non-existent IDs; they now do a `SELECT` first and throw `TRPCError({ code: "NOT_FOUND" })` if the record is absent, which gives callers accurate feedback and prevents ghost-delete silent failures.
+- **Integration tests for `holdingsRouter` added** — `packages/core/src/__tests__/router/holdings.test.ts` covers `list`, `add`, `get`, `update`, `delete`, `addTransaction`, `transactions`, `deleteTransaction`, and `getWithPnL` (17 tests total); tests use an in-memory SQLite DB with full migrations applied per `beforeEach`; exported `createCallerFactory` from `router/trpc.ts` to enable type-safe direct callers.
+### Found but not fixed
+- `better-sqlite3` binary mismatch (Node 22 binary vs Node 20 runtime) causes `@portfolio/db` migration tests and the new router integration tests to fail at the native module load step; this is a pre-existing environment issue that predates this run and requires either `pnpm rebuild better-sqlite3` under Node 20 or pinning the runtime to Node 22 as stated in `package.json`'s engines field.
+### Test status
+- FAIL — `@portfolio/db`: 11 tests skip/fail (pre-existing; `better-sqlite3` Node version mismatch). `@portfolio/core`: 39 calculation tests PASS; 17 new router integration tests FAIL for the same pre-existing `better-sqlite3` reason. `@portfolio/api-adapters`: 16 tests PASS. TypeScript strict mode passes for all packages.

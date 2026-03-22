@@ -46,6 +46,13 @@ export const holdingsRouter = router({
   delete: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.db
+        .select({ id: holdings.id })
+        .from(holdings)
+        .where(eq(holdings.id, input.id));
+      if (!existing[0]) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Holding not found" });
+      }
       await ctx.db.delete(holdings).where(eq(holdings.id, input.id));
       return { success: true };
     }),
@@ -104,6 +111,13 @@ export const holdingsRouter = router({
   deleteTransaction: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
+      const existing = await ctx.db
+        .select({ id: transactions.id })
+        .from(transactions)
+        .where(eq(transactions.id, input.id));
+      if (!existing[0]) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Transaction not found" });
+      }
       await ctx.db.delete(transactions).where(eq(transactions.id, input.id));
       return { success: true };
     }),
@@ -120,11 +134,13 @@ export const holdingsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Holding not found" });
       }
 
+      const holding = holdingResults[0];
       const result = await ctx.db
         .insert(transactions)
         .values({
           ...input,
-          symbol: holdingResults[0].symbol,
+          symbol: holding.symbol,
+          currency: holding.currency,
           date: new Date(input.date),
         })
         .returning();

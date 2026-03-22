@@ -2,6 +2,8 @@ import { z } from "zod";
 
 export const transactionTypeSchema = z.enum(["buy", "sell", "dividend"]);
 
+// `currency` is intentionally excluded: it is derived server-side from the
+// holding record so the client cannot supply a mismatched currency.
 export const addTransactionSchema = z.object({
   holdingId: z.number().int().positive(),
   type: transactionTypeSchema,
@@ -9,7 +11,6 @@ export const addTransactionSchema = z.object({
   quantity: z.number().positive(),
   price: z.number().positive(),
   fees: z.number().min(0).default(0),
-  currency: z.string().length(3).default("USD"),
   notes: z.string().max(500).optional(),
 });
 
@@ -22,9 +23,10 @@ export const addHoldingSchema = z.object({
   exchange: z.string().max(20).default(""),
 });
 
+// `symbol` is intentionally excluded: changing it would orphan all
+// priceSnapshots and newsItems keyed on the old symbol.
 export const updateHoldingSchema = z.object({
   id: z.number().int().positive(),
-  symbol: z.string().min(1).max(20).toUpperCase().optional(),
   name: z.string().min(1).max(200).optional(),
   quantity: z.number().min(0).optional(),
   avgCostBasis: z.number().min(0).optional(),
