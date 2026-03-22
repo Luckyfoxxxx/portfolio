@@ -124,7 +124,9 @@ export const holdingsRouter = router({
         .insert(transactions)
         .values({
           ...input,
+          // Derive symbol and currency from the holding — do not trust client values.
           symbol: holdingResults[0].symbol,
+          currency: holdingResults[0].currency,
           date: new Date(input.date),
         })
         .returning();

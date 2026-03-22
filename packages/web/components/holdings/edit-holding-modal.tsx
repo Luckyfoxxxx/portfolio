@@ -98,7 +98,6 @@ export function EditHoldingModal({ holding, onClose }: EditHoldingModalProps) {
 
     updateHolding.mutate({
       id: holding.id,
-      symbol: holding.symbol,
       name: name.trim(),
       quantity: parsedQty,
       avgCostBasis: parsedCost,
