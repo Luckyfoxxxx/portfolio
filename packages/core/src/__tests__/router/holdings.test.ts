@@ -16,7 +16,7 @@ import { createCallerFactory } from "../../router/trpc";
 import type { Context } from "../../router/context";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const MIGRATIONS_DIR = join(__dirname, "../../../../../db/src/migrations");
+const MIGRATIONS_DIR = join(__dirname, "../../../../db/src/migrations");
 
 // --- helpers ----------------------------------------------------------------
 
