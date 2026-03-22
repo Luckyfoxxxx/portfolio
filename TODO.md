@@ -184,3 +184,27 @@
 - Transaction list edit — no edit mutation exists; out of scope for a UX-only pass.
 ### Test status
 - PASS — `@portfolio/core` 39 tests pass; `@portfolio/api-adapters` 16 tests pass. `@portfolio/db` fails with a pre-existing Node.js version mismatch (compiled for Node 22, running on Node 20) — not caused by these changes. `tsc --noEmit` for `@portfolio/web` passes with no errors.
+## Agent Findings — Security (20260322-1015)
+
+- **Admin page `notFound()` discloses route existence** — `app/(app)/admin/page.tsx:43`: a 404 for non-admins confirms the route exists; replaced with `redirect("/dashboard")` to give uniform response.
+- **tRPC `INTERNAL_SERVER_ERROR.message` leaks DB schema details** — `packages/core/src/router/trpc.ts`: the `errorFormatter` stripped `stack` but not `message`; raw Drizzle/SQLite errors (e.g. `UNIQUE constraint failed: users.username`) could reach the client in production; now replaced with a generic string for `INTERNAL_SERVER_ERROR` in non-dev environments.
+- **`updateHoldingSchema` allowed symbol mutation** — `packages/core/src/schemas/index.ts:27`: changing `symbol` would orphan all `priceSnapshots` and `newsItems` keyed to the old symbol; removed `symbol` from the schema entirely and removed it from the client-side `updateHolding.mutate()` call.
+- **`addTransaction` used client-supplied `currency`** — `packages/core/src/router/holdings.ts:123-130`: the client could pass any 3-letter currency string, corrupting P&L calculations; now derives `currency` server-side from the fetched holding record, ignoring the client value.
+- **URL validation used fragile `startsWith` prefix check** — `packages/web/lib/price-cron/index.ts:64` and `packages/web/components/holdings/news-feed.tsx:7-9`: string prefix matching can be bypassed by encoded variants; replaced with `new URL()` protocol check in both locations.
+- **No session idle timeout / sliding expiry** — `packages/web/lib/auth/session.ts:10`: 30-day fixed TTL with no activity renewal; if a session cookie is stolen it remains valid for the full 30 days. Not fixed (requires sliding-expiry logic in the session middleware).
+- **`__Host-` cookie silently fails over HTTP** — `packages/web/lib/auth/constants.ts`: `__Host-` prefix requires HTTPS; the cookie is silently dropped in plain HTTP dev mode causing confusing "not logged in" behaviour. Not fixed (cosmetic/DX issue; production is always HTTPS).
+
+## Security Agent Report — 20260322-1015
+### Completed
+- **Removed `symbol` from `updateHoldingSchema`** — prevents clients from mutating a holding's ticker, which would orphan all price snapshots and news items keyed to the old symbol; also removed `symbol` from the `updateHolding.mutate()` call in `edit-holding-modal.tsx`.
+- **Sanitised `INTERNAL_SERVER_ERROR` messages in tRPC errorFormatter** — raw DB/runtime error messages (table names, column names, file paths) are now replaced with `"An internal error occurred"` for `INTERNAL_SERVER_ERROR` codes in non-development environments.
+- **Fixed admin page access control disclosure** — replaced `notFound()` (404 confirms route exists) with `redirect("/dashboard")` for non-admin users.
+- **Overrode client-supplied `currency` in `addTransaction`** — currency is now derived server-side from the fetched holding record, preventing P&L corruption from mismatched currency codes.
+- **Hardened URL validation with `new URL()` protocol check** — replaced `startsWith("https://")` prefix checks in `price-cron/index.ts` and `news-feed.tsx` with `new URL()` parsing; handles encoded edge cases that prefix matching misses.
+### Found but not fixed
+- No session idle timeout / sliding expiry — 30-day fixed TTL; if a session cookie is stolen it remains valid for the full period. Requires sliding-expiry middleware changes.
+- `__Host-` cookie silently fails over HTTP in dev — cosmetic/DX issue; production is always HTTPS so no security impact.
+- `x-forwarded-for` IP spoofing in rate limiter — still present from prior agent report; requires knowing the trusted proxy CIDR at deploy time.
+- Holdings lack `userId` column — multi-user IDOR still present; requires a DB migration.
+### Test status
+- PASS — 39/39 `@portfolio/core` tests pass, 16/16 `@portfolio/api-adapters` tests pass. `@portfolio/db` tests are pre-existing failures due to Node 20 vs Node 22 binary mismatch in better-sqlite3 (unrelated to this agent's changes).

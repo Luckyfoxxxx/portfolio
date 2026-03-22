@@ -24,7 +24,8 @@ export const addHoldingSchema = z.object({
 
 export const updateHoldingSchema = z.object({
   id: z.number().int().positive(),
-  symbol: z.string().min(1).max(20).toUpperCase().optional(),
+  // symbol is intentionally omitted — changing it would orphan all price
+  // snapshots and news items keyed to the old symbol.
   name: z.string().min(1).max(200).optional(),
   quantity: z.number().min(0).optional(),
   avgCostBasis: z.number().min(0).optional(),

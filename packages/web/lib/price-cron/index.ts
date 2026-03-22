@@ -61,7 +61,14 @@ async function refreshPrices() {
     for (const symbol of symbols) {
       try {
         const articles = (await adapter.getNews?.(symbol, 5) ?? [])
-          .filter((a: NewsArticle) => a.url.startsWith("https://") || a.url.startsWith("http://"));
+          .filter((a: NewsArticle) => {
+            try {
+              const { protocol } = new URL(a.url);
+              return protocol === "https:" || protocol === "http:";
+            } catch {
+              return false;
+            }
+          });
         for (const article of articles) {
           await db
             .insert(newsItems)
