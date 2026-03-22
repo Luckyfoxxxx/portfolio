@@ -160,3 +160,27 @@
 - **Seed script: `SEED_ADMIN` flag** — Added `isAdmin` derived from `SEED_ADMIN=true` env var when inserting the dev user.
 ### Found but not fixed
 - None — all assigned tasks completed. `tsc --noEmit` passes for both `@portfolio/core` and `@portfolio/web`. All 11 DB migration tests pass.
+
+## Cron Run Inspector UI
+
+- [x] **Clickable cron run detail modal** — Admin runs table rows are not interactive; error column truncates at 60 chars with no way to read the full message; clicking a row should open a modal showing all fields (id, started at, finished at, duration, status, symbols refreshed/attempted, full error text).
+
+## Agent Findings — UX (20260322-1015)
+
+- **Transaction delete button has no touch target** — The `✕` delete button in `transaction-list.tsx` had no padding, rendering at approximately 16×16px (the glyph size at `text-xs`); confirmed well below the 44px WCAG 2.5.5 minimum. Fixed with `min-h-[44px] min-w-[44px]` and centering.
+- **Transaction confirm inline buttons (No/Yes) also lack padding** — Same component: the inline "Delete? No Yes" confirmation row had bare text buttons with no padding; also below 44px. Fixed.
+- **Nav links are 36px tall** — Each nav link used `py-2` (8px × 2 = 16px) + 20px line-height = 36px; below 44px minimum. Fixed with `inline-flex min-h-[44px] items-center`.
+- **Sign-out button touch target** — Previous agent noted it was still ~38px; added explicit `min-h-[44px]` to guarantee the 44px minimum regardless of rendering context.
+
+## UX Agent Report — 20260322-1015
+### Completed
+- **Clickable cron run detail modal** — Created `components/admin/cron-run-detail-modal.tsx` (client component: full-screen backdrop, focus trap, Escape to close, body scroll lock, full error text in a styled code block) and `components/admin/cron-runs-table.tsx` (client component: interactive table rows with keyboard support via Enter/Space, aria-label per row). Admin `page.tsx` updated to serialize `Date` objects to ISO strings before passing as props to the client table, and now renders `<CronRunsTable>` with a "Click a row to view full details" hint.
+- **Transaction delete button touch target** — `transaction-list.tsx`: the bare `✕` button now has `min-h-[44px] min-w-[44px]` and flex centering. The "No"/"Yes" confirm buttons also have `min-h-[44px]` with horizontal padding. Focus rings added to all three buttons.
+- **Nav link touch targets** — `nav-bar.tsx`: nav links changed from `py-2` to `inline-flex min-h-[44px] items-center` so all three navigation links meet the 44px tap target minimum.
+- **Sign-out button touch target** — `nav-bar.tsx`: added `min-h-[44px]` to the sign-out button (previously only had `py-3`, which could render below 44px depending on line-height context) and added `focus:ring-2 focus:ring-gray-500 rounded` for visible focus state.
+### Found but not fixed
+- `text-gray-400` small-text contrast on `bg-gray-900` — still needs verification with a contrast tool before acting; ratio may be acceptable at larger sizes but fail at `text-xs`.
+- Login wrong-error-on-catch — cosmetic/DX: the `catch` block shows "Network error" for non-network errors; not a blocking UX issue.
+- Transaction list edit — no edit mutation exists; out of scope for a UX-only pass.
+### Test status
+- PASS — `@portfolio/core` 39 tests pass; `@portfolio/api-adapters` 16 tests pass. `@portfolio/db` fails with a pre-existing Node.js version mismatch (compiled for Node 22, running on Node 20) — not caused by these changes. `tsc --noEmit` for `@portfolio/web` passes with no errors.
