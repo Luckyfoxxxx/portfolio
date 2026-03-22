@@ -5,7 +5,12 @@ interface NewsFeedProps {
 }
 
 function isSafeUrl(url: string): boolean {
-  return url.startsWith("https://") || url.startsWith("http://");
+  try {
+    const { protocol } = new URL(url);
+    return protocol === "https:" || protocol === "http:";
+  } catch {
+    return false;
+  }
 }
 
 export function NewsFeed({ news }: NewsFeedProps) {
