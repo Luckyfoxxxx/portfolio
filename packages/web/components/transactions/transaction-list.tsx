@@ -68,18 +68,18 @@ export function TransactionList({ transactions }: TransactionListProps) {
               </p>
             </div>
             {confirmId === tx.id ? (
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-1 text-xs">
                 <span className="text-gray-400">Delete?</span>
                 <button
                   onClick={() => setConfirmId(null)}
-                  className="text-gray-400 transition-colors hover:text-white"
+                  className="min-h-[44px] min-w-[44px] px-2 text-gray-400 transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 rounded"
                 >
                   No
                 </button>
                 <button
                   onClick={() => deleteTransaction.mutate({ id: tx.id })}
                   disabled={deleteTransaction.isPending}
-                  className="text-red-400 transition-colors hover:text-red-300 disabled:opacity-50"
+                  className="min-h-[44px] min-w-[44px] px-2 text-red-400 transition-colors hover:text-red-300 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-gray-500 rounded"
                 >
                   {deleteTransaction.isPending && deleteTransaction.variables?.id === tx.id
                     ? "…"
@@ -89,8 +89,8 @@ export function TransactionList({ transactions }: TransactionListProps) {
             ) : (
               <button
                 onClick={() => setConfirmId(tx.id)}
-                className="text-xs text-gray-600 transition-colors hover:text-red-400"
-                aria-label={`Delete transaction`}
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-xs text-gray-600 transition-colors hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                aria-label={`Delete ${tx.symbol} transaction`}
               >
                 ✕
               </button>

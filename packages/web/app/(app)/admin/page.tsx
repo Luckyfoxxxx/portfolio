@@ -4,6 +4,8 @@ import { db } from "../../../lib/db/index";
 import { cronRuns } from "@portfolio/db";
 import { desc } from "drizzle-orm";
 import { isMarketHours } from "../../../lib/price-cron/index";
+import { CronRunsTable } from "../../../components/admin/cron-runs-table";
+import type { SerializedCronRun } from "../../../components/admin/cron-runs-table";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +62,16 @@ export default async function AdminPage() {
       : lastRun.status === "failed"
       ? `Last cron run failed: ${lastRun.error ?? "unknown error"}`
       : "Last cron run is stale (>15 min old during market hours). The cron may have stopped.";
+
+  const serializedRuns: SerializedCronRun[] = runs.map((run) => ({
+    id: run.id,
+    startedAt: run.startedAt.toISOString(),
+    finishedAt: run.finishedAt ? run.finishedAt.toISOString() : null,
+    status: run.status,
+    symbolsAttempted: run.symbolsAttempted,
+    symbolsRefreshed: run.symbolsRefreshed,
+    error: run.error ?? null,
+  }));
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -119,46 +131,9 @@ export default async function AdminPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400">
             Recent Runs (last 20)
           </h2>
+          <p className="mt-1 text-xs text-gray-500">Click a row to view full details.</p>
         </div>
-        {runs.length === 0 ? (
-          <p className="px-6 py-8 text-center text-gray-400">No cron runs recorded.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-800 text-left text-xs uppercase tracking-wide text-gray-500">
-                  <th className="px-6 py-3 font-medium">Started At</th>
-                  <th className="px-6 py-3 font-medium">Duration</th>
-                  <th className="px-6 py-3 font-medium">Status</th>
-                  <th className="px-6 py-3 font-medium">Symbols</th>
-                  <th className="px-6 py-3 font-medium">Error</th>
-                </tr>
-              </thead>
-              <tbody>
-                {runs.map((run) => (
-                  <tr
-                    key={run.id}
-                    className="border-b border-gray-800 last:border-0 hover:bg-gray-800/50"
-                  >
-                    <td className="px-6 py-3 text-gray-300">{formatDate(run.startedAt)}</td>
-                    <td className="px-6 py-3 text-gray-300">
-                      {durationSeconds(run.startedAt, run.finishedAt)}
-                    </td>
-                    <td className="px-6 py-3">
-                      <StatusBadge status={run.status} />
-                    </td>
-                    <td className="px-6 py-3 text-gray-300">
-                      {run.symbolsRefreshed}/{run.symbolsAttempted}
-                    </td>
-                    <td className="px-6 py-3 text-gray-400">
-                      {run.error ? run.error.slice(0, 60) + (run.error.length > 60 ? "…" : "") : "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <CronRunsTable runs={serializedRuns} />
       </div>
     </div>
   );
