@@ -111,14 +111,44 @@ export const holdingsRouter = router({
   deleteTransaction: protectedProcedure
     .input(z.object({ id: z.number().int().positive() }))
     .mutation(async ({ ctx, input }) => {
-      const existing = await ctx.db
-        .select({ id: transactions.id })
+      // Fetch the transaction first so we know which holding to recalculate.
+      const txRows = await ctx.db
+        .select()
         .from(transactions)
         .where(eq(transactions.id, input.id));
-      if (!existing[0]) {
+      if (!txRows[0]) {
         throw new TRPCError({ code: "NOT_FOUND", message: "Transaction not found" });
       }
+      const { holdingId } = txRows[0];
+
+
       await ctx.db.delete(transactions).where(eq(transactions.id, input.id));
+
+      // Recalculate the holding's quantity and avg cost basis from remaining txs.
+      const remaining = await ctx.db
+        .select()
+        .from(transactions)
+        .where(eq(transactions.holdingId, holdingId));
+
+      const txRecords: TransactionRecord[] = remaining.map((tx) => ({
+        date: tx.date,
+        type: tx.type,
+        quantity: tx.quantity,
+        price: tx.price,
+        fees: tx.fees,
+        currency: tx.currency,
+      }));
+
+      const costBasis = calculateCostBasisFIFO(txRecords);
+      await ctx.db
+        .update(holdings)
+        .set({
+          quantity: costBasis.totalQuantity,
+          avgCostBasis: costBasis.averageCostPerShare,
+          updatedAt: new Date(),
+        })
+        .where(eq(holdings.id, holdingId));
+
       return { success: true };
     }),
 
@@ -135,6 +165,7 @@ export const holdingsRouter = router({
       }
 
       const holding = holdingResults[0];
+
       const result = await ctx.db
         .insert(transactions)
         .values({

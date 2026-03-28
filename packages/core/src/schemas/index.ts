@@ -11,6 +11,8 @@ export const addTransactionSchema = z.object({
   quantity: z.number().positive(),
   price: z.number().positive(),
   fees: z.number().min(0).default(0),
+  // currency is intentionally excluded: it is derived server-side from the
+  // holding's currency to prevent client-supplied mismatches.
   notes: z.string().max(500).trim().optional(),
 });
 
