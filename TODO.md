@@ -242,3 +242,25 @@
 - Sign in button `min-h-[44px]` not set (submit button on login form uses `py-3` which is ~44px with text; adequate but could be made explicit).
 ### Test status
 - PASS — 39 core tests pass; 6 api-adapters tests pass. DB tests skipped due to pre-existing Node.js 20/22 binary mismatch (better-sqlite3 compiled for Node 22, environment is Node 20); unrelated to this change set.
+## Agent Findings — Security (20260328-1357)
+
+- **`updateHoldingSchema` allowed mutating `symbol`** — any client could rename a holding's symbol, silently orphaning all `priceSnapshots` and `newsItems` keyed on the original symbol. Fixed by removing `symbol` from the schema entirely.
+- **tRPC `/api/trpc` POST handler had no CSRF origin check** — only `sameSite=strict` cookie policy stood between the mutation endpoints and cross-origin POST requests; an attacker on the same domain/subdomain (or with cookie-sharing misconfiguration) could still forge mutations. Fixed with explicit `Origin` vs. `Host` comparison.
+- **Session expiry was a fixed absolute timestamp** — a user who logged in and actively used the app every day for 29 days would be suddenly logged out on day 30 with no warning. Added sliding-window renewal: if < 15 days remain on a valid session, the DB record and browser cookie are both extended by a full 30 days.
+- **String inputs to tRPC were not sanitised** — `symbol`, `name`, `exchange`, `notes`, and `currency` fields in `addHoldingSchema`, `addTransactionSchema`, and `updateHoldingSchema` accepted leading/trailing whitespace and mixed-case currency codes, which could produce duplicate records (e.g., `" AAPL"` vs `"AAPL"`). Added `.trim()` to all string fields and `.toUpperCase()` to currency codes.
+
+## Security Agent Report — 20260328-1357
+### Completed
+- **`symbol` made immutable in `updateHoldingSchema`** — removed `symbol` from `packages/core/src/schemas/index.ts`; added explanatory comment. Updated `packages/web/components/holdings/edit-holding-modal.tsx` to stop sending the field. Prevents orphaning of `priceSnapshots` and `newsItems`.
+- **CSRF origin check added to `/api/trpc`** — `packages/web/app/api/trpc/[trpc]/route.ts` now rejects POST requests where the `Origin` header's host differs from the `Host` header; malformed `Origin` values are also rejected. Provides defence-in-depth behind `sameSite=strict` session cookies.
+- **Session sliding-window renewal** — `packages/web/lib/auth/session.ts`: `validateSession()` now extends a session's `expiresAt` by a full 30-day TTL whenever < 15 days remain, and returns a `renewed: boolean` flag. `getSession()` re-sets the browser cookie when the session was renewed, keeping the client expiry in sync with the DB record.
+- **Input sanitisation on tRPC schemas** — `packages/core/src/schemas/index.ts`: added `.trim()` to all user-supplied string fields (`name`, `exchange`, `notes`) and `.toUpperCase()` to currency codes across `addHoldingSchema`, `addTransactionSchema`, and `updateHoldingSchema`.
+
+### Found but not fixed
+- **`deleteTransaction` / `delete` (holding) lack ownership checks** — any authenticated user can delete any record by integer ID; requires a `userId` foreign key on holdings (DB migration out of scope for this agent).
+- **`x-forwarded-for` IP spoofing in rate limiter** — without a trusted proxy allowlist, clients can rotate forged source IPs to bypass the 5-attempt login limit; fix requires knowing the deployment proxy CIDR at deploy time.
+- **tRPC `addTransaction` accepts client-supplied `currency`** — could mismatch the holding's own currency; could be derived server-side from the holding record (same pattern as the `symbol` fix) for consistency.
+
+### Test status
+- PASS — `@portfolio/core`: 39 tests pass; `@portfolio/web`: 9 tests pass; `@portfolio/api-adapters`: 16 tests pass. `tsc --noEmit` clean for both `core` and `web`.
+- `@portfolio/db`: 11 tests skipped/failed due to a pre-existing Node.js version mismatch (better-sqlite3 compiled against Node 22, environment runs Node 20); unrelated to this agent's changes.

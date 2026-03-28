@@ -98,6 +98,8 @@ export function EditHoldingModal({ holding, onClose }: EditHoldingModalProps) {
 
     updateHolding.mutate({
       id: holding.id,
+      // symbol is intentionally omitted: it is immutable server-side to prevent
+      // orphaning of priceSnapshots and newsItems keyed on the original symbol.
       name: name.trim(),
       quantity: parsedQty,
       avgCostBasis: parsedCost,

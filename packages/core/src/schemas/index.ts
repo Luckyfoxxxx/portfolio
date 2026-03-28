@@ -11,29 +11,27 @@ export const addTransactionSchema = z.object({
   quantity: z.number().positive(),
   price: z.number().positive(),
   fees: z.number().min(0).default(0),
-  notes: z.string().max(500).optional(),
+  notes: z.string().max(500).trim().optional(),
 });
 
 export const addHoldingSchema = z.object({
-  symbol: z.string().min(1).max(20).toUpperCase(),
-  name: z.string().min(1).max(200),
+  symbol: z.string().min(1).max(20).trim().toUpperCase(),
+  name: z.string().min(1).max(200).trim(),
   quantity: z.number().min(0),
   avgCostBasis: z.number().min(0),
-  currency: z.string().length(3).default("USD"),
-  exchange: z.string().max(20).default(""),
+  currency: z.string().length(3).toUpperCase().default("USD"),
+  exchange: z.string().max(20).trim().default(""),
 });
 
-// `symbol` is intentionally excluded: changing it would orphan all
-// priceSnapshots and newsItems keyed on the old symbol.
 export const updateHoldingSchema = z.object({
   id: z.number().int().positive(),
   // symbol is intentionally omitted — changing it would orphan all price
   // snapshots and news items keyed to the old symbol.
-  name: z.string().min(1).max(200).optional(),
+  name: z.string().min(1).max(200).trim().optional(),
   quantity: z.number().min(0).optional(),
   avgCostBasis: z.number().min(0).optional(),
-  currency: z.string().length(3).optional(),
-  exchange: z.string().max(20).optional(),
+  currency: z.string().length(3).toUpperCase().optional(),
+  exchange: z.string().max(20).trim().optional(),
 });
 
 export const loginSchema = z.object({

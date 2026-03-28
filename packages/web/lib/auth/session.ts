@@ -8,6 +8,9 @@ import { SESSION_COOKIE } from "./constants";
 
 export { SESSION_COOKIE } from "./constants";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+// Renew the session when less than half the TTL remains, keeping active
+// users logged in without requiring re-authentication.
+const SESSION_RENEW_THRESHOLD_MS = SESSION_TTL_MS / 2; // 15 days
 
 export function generateSessionId(): string {
   return randomBytes(32).toString("hex");
@@ -27,7 +30,7 @@ export async function createSession(userId: string): Promise<Session> {
 
 export async function validateSession(
   sessionId: string
-): Promise<{ user: User; session: Session } | null> {
+): Promise<{ user: User; session: Session; renewed: boolean } | null> {
   const result = await db
     .select({ user: users, session: sessions })
     .from(sessions)
@@ -40,7 +43,23 @@ export async function validateSession(
     )
     .limit(1);
 
-  return result[0] ?? null;
+  const row = result[0] ?? null;
+  if (!row) return null;
+
+  // Sliding-window renewal: if less than half the TTL remains, extend the
+  // session so that actively-used sessions don't expire unexpectedly.
+  const timeLeft = row.session.expiresAt.getTime() - Date.now();
+  if (timeLeft < SESSION_RENEW_THRESHOLD_MS) {
+    const newExpiresAt = new Date(Date.now() + SESSION_TTL_MS);
+    await db
+      .update(sessions)
+      .set({ expiresAt: newExpiresAt })
+      .where(eq(sessions.id, sessionId));
+    // Return an updated session object so the cookie can be refreshed by the caller.
+    return { user: row.user, session: { ...row.session, expiresAt: newExpiresAt }, renewed: true };
+  }
+
+  return { user: row.user, session: row.session, renewed: false };
 }
 
 export async function deleteSession(sessionId: string): Promise<void> {
@@ -85,5 +104,12 @@ export async function getSession(): Promise<{
   if (!sessionId) return null;
   const result = await validateSession(sessionId);
   if (!result) return null;
-  return { ...result, isAdmin: result.user.isAdmin === 1 };
+
+  // If the session was renewed in validateSession, also update the browser
+  // cookie so the client-side expiry stays in sync with the DB record.
+  if (result.renewed) {
+    await setSessionCookie(sessionId, result.session.expiresAt);
+  }
+
+  return { user: result.user, session: result.session, isAdmin: result.user.isAdmin === 1 };
 }
