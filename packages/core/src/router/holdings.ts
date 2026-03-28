@@ -140,8 +140,8 @@ export const holdingsRouter = router({
         .values({
           ...input,
           // Derive symbol and currency from the holding — do not trust client values.
-          symbol: holdingResults[0].symbol,
-          currency: holdingResults[0].currency,
+          symbol: holding.symbol,
+          currency: holding.currency,
           date: new Date(input.date),
         })
         .returning();
