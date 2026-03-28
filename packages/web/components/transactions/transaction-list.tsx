@@ -49,7 +49,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
               </span>
               <span className="font-medium">{tx.symbol}</span>
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-400">
               {tx.quantity} shares @ {formatCurrency(tx.price, tx.currency)}
             </p>
           </div>
@@ -59,7 +59,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
                 {formatCurrency(tx.quantity * tx.price, tx.currency)}
                 <span className="ml-1 text-xs font-normal text-gray-500">excl. fees</span>
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-400">
                 {tx.date.toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "short",
@@ -90,7 +90,7 @@ export function TransactionList({ transactions }: TransactionListProps) {
               <button
                 onClick={() => setConfirmId(tx.id)}
                 className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded text-xs text-gray-600 transition-colors hover:text-red-400 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                aria-label={`Delete ${tx.symbol} transaction`}
+                aria-label={`Delete ${tx.symbol} ${tx.type} transaction`}
               >
                 ✕
               </button>

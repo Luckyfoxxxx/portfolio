@@ -40,7 +40,7 @@ function StatCard({
 }) {
   return (
     <div className="rounded-xl border border-gray-800 bg-gray-900 p-4">
-      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-xs text-gray-400">{label}</p>
       <p
         className={`mt-1 text-xl font-semibold tabular-nums ${
           positive === undefined

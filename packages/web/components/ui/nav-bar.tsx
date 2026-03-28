@@ -49,7 +49,7 @@ export function NavBar({ username, isAdmin }: NavBarProps) {
           <span className="text-xs text-gray-300">{username}</span>
           <button
             onClick={handleLogout}
-            className="min-h-[44px] px-3 py-2 text-sm text-gray-400 transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 rounded"
+            className="min-h-[44px] px-3 py-3 text-sm text-gray-400 transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500 rounded"
           >
             Sign out
           </button>

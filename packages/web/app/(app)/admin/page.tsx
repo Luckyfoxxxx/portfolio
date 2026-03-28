@@ -101,23 +101,23 @@ export default async function AdminPage() {
         ) : (
           <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <div>
-              <dt className="text-xs text-gray-500">Started At</dt>
+              <dt className="text-xs text-gray-400">Started At</dt>
               <dd className="mt-1 text-sm text-white">{formatDate(lastRun.startedAt)}</dd>
             </div>
             <div>
-              <dt className="text-xs text-gray-500">Status</dt>
+              <dt className="text-xs text-gray-400">Status</dt>
               <dd className="mt-1">
                 <StatusBadge status={lastRun.status} />
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-gray-500">Symbols Refreshed</dt>
+              <dt className="text-xs text-gray-400">Symbols Refreshed</dt>
               <dd className="mt-1 text-sm text-white">
                 {lastRun.symbolsRefreshed}/{lastRun.symbolsAttempted}
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-gray-500">Duration</dt>
+              <dt className="text-xs text-gray-400">Duration</dt>
               <dd className="mt-1 text-sm text-white">
                 {durationSeconds(lastRun.startedAt, lastRun.finishedAt)}
               </dd>

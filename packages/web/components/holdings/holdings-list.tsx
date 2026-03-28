@@ -51,7 +51,7 @@ export function HoldingsList({ holdings }: HoldingsListProps) {
                   className="min-w-0 flex-1 transition-colors hover:opacity-80"
                 >
                   <p className="font-medium">{holding.symbol}</p>
-                  <p className="text-xs text-gray-500 truncate">{holding.name}</p>
+                  <p className="text-xs text-gray-400 truncate">{holding.name}</p>
                   <p className="text-xs text-gray-400">{holding.quantity} shares</p>
                 </Link>
                 <div className="ml-4 flex items-center gap-3 shrink-0">
