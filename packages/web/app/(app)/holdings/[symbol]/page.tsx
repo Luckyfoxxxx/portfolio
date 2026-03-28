@@ -158,7 +158,7 @@ export default async function HoldingPage({ params }: Props) {
                   <p className="text-sm tabular-nums">
                     {formatCurrency(tx.quantity * tx.price, tx.currency)}
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-400">
                     {tx.date.toLocaleDateString()}
                     {tx.fees > 0 && (
                       <span className="ml-1">+{formatCurrency(tx.fees, tx.currency)} fees</span>
