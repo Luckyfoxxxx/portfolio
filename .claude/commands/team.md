@@ -107,15 +107,62 @@ EOF
   echo "[coordinator] $label PR: $pr_url"
 }
 
-open_pr "$BRANCH_UX"  "UX improvements (agent run)"       "UX"
-open_pr "$BRANCH_SEC" "Security hardening (agent run)"    "Security"
-open_pr "$BRANCH_ENG" "Engineering cleanup (agent run)"   "Principal"
+PR_UX=$(open_pr "$BRANCH_UX"  "UX improvements (agent run)"       "UX")
+PR_SEC=$(open_pr "$BRANCH_SEC" "Security hardening (agent run)"    "Security")
+PR_ENG=$(open_pr "$BRANCH_ENG" "Engineering cleanup (agent run)"   "Principal")
 
 echo ""
 echo "[coordinator] Cleaning up worktrees..."
 git -C "$REPO" worktree remove --force /tmp/portfolio-wt-ux       2>/dev/null || true
 git -C "$REPO" worktree remove --force /tmp/portfolio-wt-security  2>/dev/null || true
 git -C "$REPO" worktree remove --force /tmp/portfolio-wt-principal 2>/dev/null || true
+
+# ── Poll CI and report failures ──────────────────────────────────────────────
+wait_for_ci() {
+  local pr_url="$1"
+  local label="$2"
+  [ -z "$pr_url" ] && return
+  echo "[coordinator] Waiting for CI on $label PR ($pr_url)..."
+  local attempts=0
+  while [ $attempts -lt 40 ]; do
+    sleep 30
+    attempts=$((attempts + 1))
+    local status
+    status=$(gh pr checks "$pr_url" 2>/dev/null)
+    # Still pending?
+    if echo "$status" | grep -qE "pending|queued|in_progress"; then
+      echo "[coordinator] $label CI: still running..."
+      continue
+    fi
+    # Any failures?
+    if echo "$status" | grep -q "fail"; then
+      echo ""
+      echo "╔══════════════════════════════════════════════════════════╗"
+      echo "║  CI FAILURE — $label PR"
+      echo "╚══════════════════════════════════════════════════════════╝"
+      echo "$status"
+      echo ""
+      echo "--- Failure logs ---"
+      local run_id
+      run_id=$(gh pr checks "$pr_url" 2>/dev/null | grep fail | awk '{print $NF}' | head -1 | grep -o '[0-9]\+' | head -1)
+      if [ -n "$run_id" ]; then
+        gh run view "$run_id" --log-failed 2>/dev/null \
+          | grep -E "Error:|error TS|FAIL|❯.*failed|Cannot find|##\[error\]" \
+          | head -40
+      fi
+      return 1
+    fi
+    echo "[coordinator] $label CI: all checks passed ✓"
+    return 0
+  done
+  echo "[coordinator] $label CI: timed out waiting for checks"
+}
+
+echo ""
+echo "[coordinator] Monitoring CI results..."
+wait_for_ci "$PR_UX"  "UX"       || true
+wait_for_ci "$PR_SEC" "Security"  || true
+wait_for_ci "$PR_ENG" "Principal" || true
 
 echo ""
 echo "[coordinator] Done. Review the PRs above before merging."
@@ -300,21 +347,34 @@ tmux new-window   -t "$SESSION"    -n security
 tmux new-window   -t "$SESSION"    -n principal
 tmux new-window   -t "$SESSION"    -n coordinator
 
-tmux send-keys -t "$SESSION:ux" \
-  "cd '$WT_UX' && claude --dangerously-skip-permissions -p \"\$(cat /tmp/portfolio-agent-ux.txt)\"; echo '=== UX agent done ==='" \
-  Enter
+# Write per-agent runner scripts (avoids $() substitution — fish-safe)
+cat > /tmp/run-ux.sh << 'RUNNER'
+#!/usr/bin/env bash
+cd /tmp/portfolio-wt-ux
+claude --dangerously-skip-permissions -p "$(cat /tmp/portfolio-agent-ux.txt)"
+touch /tmp/portfolio-agent-ux.done
+RUNNER
 
-tmux send-keys -t "$SESSION:security" \
-  "cd '$WT_SEC' && claude --dangerously-skip-permissions -p \"\$(cat /tmp/portfolio-agent-security.txt)\"; echo '=== Security agent done ==='" \
-  Enter
+cat > /tmp/run-security.sh << 'RUNNER'
+#!/usr/bin/env bash
+cd /tmp/portfolio-wt-security
+claude --dangerously-skip-permissions -p "$(cat /tmp/portfolio-agent-security.txt)"
+touch /tmp/portfolio-agent-security.done
+RUNNER
 
-tmux send-keys -t "$SESSION:principal" \
-  "cd '$WT_ENG' && claude --dangerously-skip-permissions -p \"\$(cat /tmp/portfolio-agent-principal.txt)\"; echo '=== Principal engineer done ==='" \
-  Enter
+cat > /tmp/run-principal.sh << 'RUNNER'
+#!/usr/bin/env bash
+cd /tmp/portfolio-wt-principal
+claude --dangerously-skip-permissions -p "$(cat /tmp/portfolio-agent-principal.txt)"
+touch /tmp/portfolio-agent-principal.done
+RUNNER
 
-tmux send-keys -t "$SESSION:coordinator" \
-  "bash /tmp/portfolio-coordinator.sh" \
-  Enter
+chmod +x /tmp/run-ux.sh /tmp/run-security.sh /tmp/run-principal.sh
+
+tmux send-keys -t "$SESSION:ux"        "bash /tmp/run-ux.sh"        Enter
+tmux send-keys -t "$SESSION:security"  "bash /tmp/run-security.sh"  Enter
+tmux send-keys -t "$SESSION:principal" "bash /tmp/run-principal.sh" Enter
+tmux send-keys -t "$SESSION:coordinator" "bash /tmp/portfolio-coordinator.sh" Enter
 
 tmux select-window -t "$SESSION:ux"
 echo ""

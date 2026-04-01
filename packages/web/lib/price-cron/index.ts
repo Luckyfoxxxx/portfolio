@@ -23,12 +23,21 @@ export function isMarketHours(): boolean {
   return totalMinutes >= 8 * 60 && totalMinutes <= 16 * 60 + 30;
 }
 
+type LogEntry =
+  | { level: "info"; msg: string }
+  | { level: "ok"; symbol: string; price: number; currency: string; source: string; msg: string }
+  | { level: "warn"; symbol: string; msg: string }
+  | { level: "error"; msg: string };
+
 async function refreshPrices() {
   const allHoldings = await db.select().from(holdings);
   if (allHoldings.length === 0) return;
 
   const symbols = [...new Set(allHoldings.map((h) => h.symbol))];
   const startedAt = new Date();
+  const logEntries: LogEntry[] = [];
+
+  logEntries.push({ level: "info", msg: `Attempting ${symbols.length} symbol(s): ${symbols.join(", ")}` });
 
   // Insert cron run row pessimistically (status: "failed")
   const [run] = await db
@@ -47,6 +56,8 @@ async function refreshPrices() {
     const quotes = await adapter.getQuotes(symbols);
     const now = new Date();
 
+    const fetchedSymbols = new Set(quotes.map((q) => q.symbol));
+
     for (const quote of quotes) {
       await db.insert(priceSnapshots).values({
         symbol: quote.symbol,
@@ -55,6 +66,20 @@ async function refreshPrices() {
         source: quote.source,
         timestamp: now,
       });
+      logEntries.push({
+        level: "ok",
+        symbol: quote.symbol,
+        price: quote.price,
+        currency: quote.currency,
+        source: quote.source,
+        msg: `${quote.price} ${quote.currency} via ${quote.source}`,
+      });
+    }
+
+    for (const sym of symbols) {
+      if (!fetchedSymbols.has(sym)) {
+        logEntries.push({ level: "warn", symbol: sym, msg: "No quote returned by adapter" });
+      }
     }
 
     // Refresh news for each symbol (less frequently — once per cycle)
@@ -81,8 +106,12 @@ async function refreshPrices() {
             })
             .onConflictDoNothing();
         }
-      } catch {
-        // News is best-effort
+      } catch (newsErr) {
+        logEntries.push({
+          level: "warn",
+          symbol,
+          msg: `News fetch failed: ${newsErr instanceof Error ? newsErr.message : String(newsErr)}`,
+        });
       }
     }
 
@@ -91,11 +120,21 @@ async function refreshPrices() {
 
     await db
       .update(cronRuns)
-      .set({ finishedAt: new Date(), status, symbolsRefreshed })
+      .set({
+        finishedAt: new Date(),
+        status,
+        symbolsRefreshed,
+        log: JSON.stringify(logEntries),
+      })
       .where(eq(cronRuns.id, runId));
 
     console.log(`[price-cron] Refreshed ${symbolsRefreshed}/${symbols.length} symbols`);
   } catch (err) {
+    logEntries.push({
+      level: "error",
+      msg: `Fatal: ${err instanceof Error ? err.message : String(err)}`,
+    });
+
     await db
       .update(cronRuns)
       .set({
@@ -103,6 +142,7 @@ async function refreshPrices() {
         status: "failed",
         symbolsRefreshed: 0,
         error: (err instanceof Error ? err.message : String(err)).slice(0, 512),
+        log: JSON.stringify(logEntries),
       })
       .where(eq(cronRuns.id, runId));
 
