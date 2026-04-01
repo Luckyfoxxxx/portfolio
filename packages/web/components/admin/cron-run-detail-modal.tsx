@@ -2,6 +2,15 @@
 
 import { useEffect, useRef } from "react";
 
+interface LogEntry {
+  level: "info" | "ok" | "warn" | "error";
+  msg: string;
+  symbol?: string;
+  price?: number;
+  currency?: string;
+  source?: string;
+}
+
 interface CronRun {
   id: number;
   startedAt: string;
@@ -10,6 +19,7 @@ interface CronRun {
   symbolsAttempted: number;
   symbolsRefreshed: number;
   error: string | null;
+  log: string | null;
 }
 
 interface CronRunDetailModalProps {
@@ -48,6 +58,30 @@ function StatusBadge({ status }: { status: "success" | "partial" | "failed" }) {
     </span>
   );
 }
+
+function parseLog(raw: string | null): LogEntry[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as LogEntry[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+const logLevelStyle: Record<string, string> = {
+  ok: "text-green-400",
+  warn: "text-yellow-400",
+  error: "text-red-400",
+  info: "text-gray-400",
+};
+
+const logLevelPrefix: Record<string, string> = {
+  ok: "✓",
+  warn: "⚠",
+  error: "✗",
+  info: "·",
+};
 
 export function CronRunDetailModal({ run, onClose }: CronRunDetailModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -93,6 +127,8 @@ export function CronRunDetailModal({ run, onClose }: CronRunDetailModalProps) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
+  const logEntries = parseLog(run.log);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -118,7 +154,7 @@ export function CronRunDetailModal({ run, onClose }: CronRunDetailModalProps) {
             ref={closeButtonRef}
             type="button"
             onClick={onClose}
-            className="rounded p-1 text-gray-500 transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500"
+            className="rounded p-2.5 text-gray-500 transition-colors hover:text-white focus:outline-none focus:ring-2 focus:ring-gray-500"
             aria-label="Close"
           >
             ✕
@@ -126,31 +162,31 @@ export function CronRunDetailModal({ run, onClose }: CronRunDetailModalProps) {
         </div>
 
         <dl className="divide-y divide-gray-800 px-4">
-          <div className="flex items-baseline justify-between py-3">
+          <div className="flex items-start justify-between py-3">
             <dt className="text-xs text-gray-500">Status</dt>
             <dd className="ml-4">
               <StatusBadge status={run.status} />
             </dd>
           </div>
 
-          <div className="flex items-baseline justify-between py-3">
+          <div className="flex items-start justify-between py-3">
             <dt className="text-xs text-gray-500">Started At</dt>
             <dd className="ml-4 text-sm text-gray-200">{formatDate(run.startedAt)}</dd>
           </div>
 
-          <div className="flex items-baseline justify-between py-3">
+          <div className="flex items-start justify-between py-3">
             <dt className="text-xs text-gray-500">Finished At</dt>
             <dd className="ml-4 text-sm text-gray-200">{formatDate(run.finishedAt)}</dd>
           </div>
 
-          <div className="flex items-baseline justify-between py-3">
+          <div className="flex items-start justify-between py-3">
             <dt className="text-xs text-gray-500">Duration</dt>
             <dd className="ml-4 text-sm text-gray-200">
               {durationSeconds(run.startedAt, run.finishedAt)}
             </dd>
           </div>
 
-          <div className="flex items-baseline justify-between py-3">
+          <div className="flex items-start justify-between py-3">
             <dt className="text-xs text-gray-500">Symbols Refreshed</dt>
             <dd className="ml-4 text-sm text-gray-200">
               {run.symbolsRefreshed} / {run.symbolsAttempted}
@@ -165,6 +201,27 @@ export function CronRunDetailModal({ run, onClose }: CronRunDetailModalProps) {
               </dd>
             </div>
           )}
+
+          <div className="py-3">
+            <dt className="mb-2 text-xs text-gray-500">Log</dt>
+            <dd>
+              {logEntries.length > 0 ? (
+                <ul className="rounded-lg border border-gray-800 bg-gray-950 px-3 py-2 space-y-0.5 font-mono text-xs max-h-96 overflow-y-auto">
+                  {logEntries.map((entry, i) => (
+                    <li key={i} className={`flex gap-2 ${logLevelStyle[entry.level] ?? "text-gray-400"}`}>
+                      <span className="shrink-0 w-4 text-center">{logLevelPrefix[entry.level] ?? "·"}</span>
+                      <span className="break-words">
+                        {entry.symbol ? <span className="font-semibold">{entry.symbol}: </span> : null}
+                        {entry.msg}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-gray-500">No log data for this run.</p>
+              )}
+            </dd>
+          </div>
         </dl>
 
         <div className="border-t border-gray-800 px-4 py-3 flex justify-end">

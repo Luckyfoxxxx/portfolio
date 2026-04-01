@@ -11,6 +11,7 @@ export interface SerializedCronRun {
   symbolsAttempted: number;
   symbolsRefreshed: number;
   error: string | null;
+  log: string | null;
 }
 
 interface CronRunsTableProps {

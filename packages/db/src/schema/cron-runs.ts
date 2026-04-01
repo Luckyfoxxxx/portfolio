@@ -8,6 +8,7 @@ export const cronRuns = sqliteTable("cron_runs", {
   symbolsAttempted: integer("symbols_attempted").notNull(),
   symbolsRefreshed: integer("symbols_refreshed").notNull(),
   error: text("error"),
+  log: text("log"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
 });
 

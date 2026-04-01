@@ -72,6 +72,7 @@ export default async function AdminPage() {
     symbolsAttempted: run.symbolsAttempted,
     symbolsRefreshed: run.symbolsRefreshed,
     error: run.error ?? null,
+    log: run.log ?? null,
   }));
 
   return (
